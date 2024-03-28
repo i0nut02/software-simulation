@@ -13,6 +13,8 @@ Chronos::Chronos(int n) {
 
     initStreams(this->c2r, CONNECTION_REQUEST_STREAM);
     initStreams(this->c2r, CONNECTION_ACCEPT_STREAM);
+
+    this->simulationTime = std::chrono::system_clock::now();
 }
 
 int Chronos::addProcess() {
@@ -107,6 +109,8 @@ int Chronos::handleEvents() {
         ReadStreamMsgVal(this->reply, 0, 0, 0, key);
         ReadStreamMsgVal(this->reply, 0, 0, 1, value);
 
+        std::cout << value << std::endl; 
+
         if (strcmp(key, "request") != 0) {
             return 1;
         }
@@ -128,7 +132,7 @@ int Chronos::handleEvents() {
 
 void Chronos::handleSynSleepReq(int pid) {
     // In reply we have the T time to make pass
-    char T[VALUE_LEN];
+    char value[VALUE_LEN];
 
     if (!(ReadStreamMsgNumVal(this->reply, 0, 0) == 4)) {
         return;
@@ -138,18 +142,54 @@ void Chronos::handleSynSleepReq(int pid) {
         this->unblockProcess(pid);
     }
 
-    ReadStreamMsgVal(reply, 0, 0, 3, T);
+    ReadStreamMsgVal(reply, 0, 0, 3, value);
 
-    std::cout << T << std::endl;
+    std::cout << value << std::endl;
+
+    TimeFormatter *t = new TimeFormatter(std::string(value));
+
+    std::cout << t->toString() << std::endl;
+
+    if (t->toString() == "0-0-0 0:0:0.0") {
+        t->setMilliseconds(1);
+    }
+
+    std::pair<TimePoint, int> pairToAdd;
+    pairToAdd.first = t->addDuration(this->simulationTime);
+    pairToAdd.second = pid;
+
+    this->syncProcessesTime.push(pairToAdd);
 }
 
 
 void Chronos::handleDisconnection(int pid) {
 
     if (this->activeProcesses.count(pid) > 0) {
-        // it can't be in synSleep queue because it will wait
+        // it can't be in synSleep handleTime; queue because it will wait
         this->activeProcesses.erase(pid);
         this->blockedProcesses.erase(pid);
     }
     return;
+}
+
+void Chronos::handleTime() {
+    if (static_cast<std::size_t>(this->getSizeActiveProcesses() - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) {
+        const auto& top = this->syncProcessesTime.top();
+        this->simulationTime = top.first;
+        
+        std::time_t currentTime = std::chrono::system_clock::to_time_t(this->simulationTime);
+        auto durationSinceEpoch = simulationTime.time_since_epoch();
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(durationSinceEpoch).count() % 1000;
+
+        std::cout << std::ctime(&currentTime) << "." << milliseconds << std::endl;
+
+        while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
+            this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request start", this->syncProcessesTime.top().second);
+            assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
+            freeReplyObject(this->reply);
+
+            this->syncProcessesTime.pop();
+        }
+
+    }
 }

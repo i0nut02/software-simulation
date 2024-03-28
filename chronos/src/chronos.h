@@ -9,14 +9,15 @@
 #include <queue>
 #include <set>
 #include <random>
-#include <cmath>
 #include <iostream>
+#include <chrono>
 
 using namespace std;
 
 /* Local libraries */
 
 #include "../../con2redis/src/con2redis.h"
+#include "time_formatter.h"
 
 /* Local constants */
 
@@ -30,6 +31,10 @@ using namespace std;
 #define KEY_LEN 100
 #define VALUE_LEN 100
 
+/* Types */
+
+
+
 /* Classes */
 
 class Chronos {
@@ -37,11 +42,13 @@ class Chronos {
         int numProcesses;
         set<int> processIDs;
 
+        TimePoint simulationTime;
+
         set<int> activeProcesses;
 
         set<int> blockedProcesses;
 
-        priority_queue < pair<time_t, int>, vector<pair<time_t, int>>, greater<pair<time_t, int>> > syncProcessesTime;
+        priority_queue<std::pair<TimePoint, int>, std::vector<std::pair<TimePoint, int>>, greater<std::pair<TimePoint, int>>> syncProcessesTime;
 
         int upperRandInt;
 
@@ -72,7 +79,7 @@ class Chronos {
 
         int handleEvents();
 
-        void handleTime;
+        void handleTime();
 };
 
 #endif

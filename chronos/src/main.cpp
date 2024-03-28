@@ -1,4 +1,5 @@
 #include "main.h"
+#include "time_formatter.h"
 
 
 int main(int argc, char* argv[]) {
@@ -28,10 +29,9 @@ int main(int argc, char* argv[]) {
             std::cout << "An error accour during event handling" << std::endl;
             return 1;
         }
-
         ch->handleTime();
     }
 
     delete ch;
     return 0;
-} 
+}
