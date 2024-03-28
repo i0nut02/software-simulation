@@ -148,8 +148,6 @@ void Chronos::handleSynSleepReq(int pid) {
 
     TimeFormatter *t = new TimeFormatter(std::string(value));
 
-    std::cout << t->toString() << std::endl;
-
     if (t->toString() == "0-0-0 0:0:0.0") {
         t->setMilliseconds(1);
     }
