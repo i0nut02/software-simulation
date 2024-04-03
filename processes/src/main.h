@@ -6,6 +6,7 @@
 #include <ctime>
 #include <chrono>
 #include <string>
+#include <random>
 
 #include "../../chronos_lib/src/chronoslib.h"
 

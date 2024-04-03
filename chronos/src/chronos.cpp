@@ -14,7 +14,7 @@ Chronos::Chronos(int n) {
     initStreams(this->c2r, CONNECTION_REQUEST_STREAM);
     initStreams(this->c2r, CONNECTION_ACCEPT_STREAM);
 
-    this->simulationTime = std::chrono::system_clock::now();
+    this->simulationTime = 0;
 }
 
 int Chronos::addProcess() {
@@ -146,14 +146,12 @@ void Chronos::handleSynSleepReq(int pid) {
 
     std::cout << value << std::endl;
 
-    TimeFormatter *t = new TimeFormatter(std::string(value));
+    std::string strValue(value);
 
-    if (t->toString() == "0-0-0 0:0:0.0") {
-        t->setMilliseconds(1);
-    }
 
-    std::pair<TimePoint, int> pairToAdd;
-    pairToAdd.first = t->addDuration(this->simulationTime);
+
+    std::pair<long double, int> pairToAdd;
+    pairToAdd.first = std::stold(strValue) + this->simulationTime;
     pairToAdd.second = pid;
 
     this->syncProcessesTime.push(pairToAdd);
@@ -174,15 +172,11 @@ void Chronos::handleTime() {
     if (static_cast<std::size_t>(this->getSizeActiveProcesses() - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
-        
-        std::time_t currentTime = std::chrono::system_clock::to_time_t(this->simulationTime);
-        auto durationSinceEpoch = simulationTime.time_since_epoch();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(durationSinceEpoch).count() % 1000;
 
-        std::cout << std::ctime(&currentTime) << "." << milliseconds << std::endl;
+        std::cout << simulationTime << std::endl;
 
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
-            this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request start", this->syncProcessesTime.top().second);
+            this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
             freeReplyObject(this->reply);
 

@@ -15,24 +15,27 @@ int getRandomNumber(int min, int max) {
     return min + std::rand() % ((max + 1) - min);
 }
 
+long double getRandomNumber2(long double min, long double max) {
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_real_distribution<long double> dis(min, max);
+    return dis(gen);
+}
+
 void executeRandomFunction() {
     int choice = getRandomNumber(1, 3);
-    TimeFormatter T;
 
-    T.setSeconds(getRandomNumber(5, 100));
+    long double T = getRandomNumber2(5.0, 100.0);
+    std::cout << T << std::endl;
 
     switch (choice) {
         case 1:
-            std::cout << T.toString() << std::endl;
             synSleep(T);
-            std::cout << getCurrentTime().count() << std::endl;
             break;
         case 2:
             break;
         case 3:
-            std::cout << T.toString() << std::endl;
             mySleep(T);
-            std::cout << getCurrentTime().count() << std::endl;
             break;
         default:
             std::cout << "Invalid choice\n";

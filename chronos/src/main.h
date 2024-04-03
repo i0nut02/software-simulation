@@ -10,6 +10,5 @@
 
 #include "../../con2redis/src/con2redis.h"
 #include "chronos.h"
-#include "time_formatter.h"
 
 #endif

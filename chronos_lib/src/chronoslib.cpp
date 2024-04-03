@@ -48,10 +48,17 @@ void alertBlocking() {
     return;
 }
 
-void synSleep(TimeFormatter T) {
-    std::string timeStr = T.toString();
+void synSleep(long double T) {
+    std::cout << T << std::endl;
+    std::cout << "SynSleep" << std::endl;
 
-    reply = RedisCommand(c2r, "XADD %d-orchestrator * request synSleep time %s", pid, timeStr.c_str());
+    char buffer[VALUE_LEN];
+    memset(buffer, '\0', VALUE_LEN);
+    std::snprintf(buffer, VALUE_LEN, "%Lf", T);
+
+    std::cout << buffer << std::endl;
+
+    reply = RedisCommand(c2r, "XADD %d-orchestrator * request synSleep time %s", pid, buffer);
     assertReplyType(c2r, reply, REDIS_REPLY_STRING);
     freeReplyObject(reply);
 
@@ -61,7 +68,7 @@ void synSleep(TimeFormatter T) {
     return;
 }
 
-void mySleep(TimeFormatter T) {
+void mySleep(long double T) {
     synSleep(T);
     return;
 }

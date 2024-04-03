@@ -1,5 +1,4 @@
 #include "main.h"
-#include "time_formatter.h"
 
 
 int main(int argc, char* argv[]) {

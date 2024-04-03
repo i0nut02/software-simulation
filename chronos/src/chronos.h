@@ -17,8 +17,6 @@ using namespace std;
 /* Local libraries */
 
 #include "../../con2redis/src/con2redis.h"
-#include "time_formatter.h"
-
 /* Local constants */
 
 #define REDIS_IP "localhost"
@@ -27,7 +25,7 @@ using namespace std;
 #define CONNECTION_REQUEST_STREAM "request-connection"
 #define CONNECTION_ACCEPT_STREAM "ids-connection"
 
-#define MIN_BLOCK 100
+#define MIN_BLOCK 1000 // milliseconds (0 == bocking call)
 #define KEY_LEN 100
 #define VALUE_LEN 100
 
@@ -42,13 +40,13 @@ class Chronos {
         int numProcesses;
         set<int> processIDs;
 
-        TimePoint simulationTime;
+        long double simulationTime;
 
         set<int> activeProcesses;
 
         set<int> blockedProcesses;
 
-        priority_queue<std::pair<TimePoint, int>, std::vector<std::pair<TimePoint, int>>, greater<std::pair<TimePoint, int>>> syncProcessesTime;
+        priority_queue<std::pair<long double, int>, std::vector<std::pair<long double, int>>, greater<std::pair<long double, int>>> syncProcessesTime;
 
         int upperRandInt;
 
