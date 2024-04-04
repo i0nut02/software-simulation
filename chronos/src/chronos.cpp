@@ -72,9 +72,16 @@ int Chronos::getSizeActiveProcesses() {
 int Chronos::acceptIncomingConn() {
     int pid;
     int res = 0;
+    char query[QUERY_LEN];
 
     while (1) {
-        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK %d COUNT 1 STREAMS %s >", MIN_BLOCK, CONNECTION_REQUEST_STREAM);
+        this->query_res = db.RunQuery("INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'listening for connections\', 0, NULL, NULL)", false);
+        if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+            std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
+            return -1;
+        }
+
+        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
         assertReply(this->c2r, this->reply);
 
         if (ReadNumStreams(this->reply) == 0) {
@@ -82,6 +89,15 @@ int Chronos::acceptIncomingConn() {
         }
 
         pid = this->addProcess();
+
+        sprintf(query, "INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'sending ID\', 0, NULL, %d)", pid);
+
+        this->query_res = db.RunQuery(query, false);
+        if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+            std::cout << "Error inserting into the Redis Log the sending action" << std::endl;
+            return -1;
+        }
+        memset(query, 0, QUERY_LEN);
 
         this->reply = RedisCommand(this->c2r, "XADD %s * pid %d", CONNECTION_ACCEPT_STREAM, pid);
         assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -93,10 +109,19 @@ int Chronos::acceptIncomingConn() {
 }
 
 int Chronos::handleEvents() {
-    char key[KEY_LEN], value[VALUE_LEN];
+    char key[KEY_LEN], value[VALUE_LEN], query[QUERY_LEN];
 
     for (auto pid : this->activeProcesses) {
-        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK %d COUNT 1 STREAMS %d-orchestrator >", MIN_BLOCK, pid);
+        sprintf(query, "INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'listen for process request\', 0, %d, NULL)", pid);
+
+        this->query_res = db.RunQuery(query, false);
+        if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+            std::cout << "Error inserting into the Redis Log the listen for process " << pid << std::endl;
+            return -1;
+        }
+        memset(query, 0, QUERY_LEN);
+
+        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-orchestrator >", pid);
         assertReply(this->c2r, this->reply);
 
         if (ReadNumStreams(this->reply) == 0) {
@@ -169,6 +194,8 @@ void Chronos::handleDisconnection(int pid) {
 }
 
 void Chronos::handleTime() {
+    char query[QUERY_LEN];
+
     if (static_cast<std::size_t>(this->getSizeActiveProcesses() - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
@@ -176,6 +203,15 @@ void Chronos::handleTime() {
         std::cout << simulationTime << std::endl;
 
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
+            sprintf(query, "INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'sync process\', 0, %d, NULL)", this->syncProcessesTime.top().second);
+
+            this->query_res = db.RunQuery(query, false);
+            if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+                std::cout << "Error inserting into the Redis Log the sync process " << this->syncProcessesTime.top().second << std::endl;
+                return;
+            }
+            memset(query, 0, QUERY_LEN);
+
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
             freeReplyObject(this->reply);
