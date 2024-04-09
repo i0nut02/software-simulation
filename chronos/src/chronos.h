@@ -28,7 +28,7 @@ using namespace std;
 #define POSTGRESQL_PORT "5432"
 #define POSTGRESQL_USER "orchestrator"
 #define POSTGRESQL_PSW "admin"
-#define POSTGRESQL_DBNAME "redis_log"
+#define POSTGRESQL_DBNAME "chronos"
 
 #define CONNECTION_REQUEST_STREAM "request-connection"
 #define CONNECTION_ACCEPT_STREAM "ids-connection"

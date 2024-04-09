@@ -12,7 +12,7 @@
 #define POSTGRESQL_PORT "5432"
 #define POSTGRESQL_USER "orchestrator"
 #define POSTGRESQL_PSW "admin"
-#define POSTGRESQL_DBNAME "redis_log"
+#define POSTGRESQL_DBNAME "chronos"
 
 #define VALUE_LEN 5000
 #define ORCHERTRATOR_ID 0

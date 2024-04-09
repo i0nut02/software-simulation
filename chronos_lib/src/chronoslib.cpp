@@ -67,14 +67,9 @@ void alertBlocking() {
 }
 
 void synSleep(long double T) {
-    std::cout << T << std::endl;
-    std::cout << "SynSleep" << std::endl;
-
     char buffer[VALUE_LEN];
     memset(buffer, '\0', VALUE_LEN);
     std::snprintf(buffer, VALUE_LEN, "%Lf", T);
-
-    std::cout << buffer << std::endl;
 
     if (logRedis(_pid, ORCHERTRATOR_ID, "syn sleep request", T) != 0) {
         std::cout << "Error loging redis command to syn sleep request" << std::endl;

@@ -10,14 +10,8 @@ int main(int argc, char* argv[]) {
     int numProcesses = std::atoi(argv[1]);
     Chronos* ch = new Chronos(numProcesses);
 
-    int count = 0;
-
-    while (count < numProcesses) {
-        count += ch->acceptIncomingConn();
-    }
-
-    if (count > numProcesses) {
-        std::cout << "To many processes are connected: " << count << std::endl;
+    if (ch->acceptIncomingConn() != 0) {
+        std::cout << "Error accepting connections" << std::endl;
         return 1;
     }
 

@@ -1,3 +1,3 @@
-\set dbname redis_log
+\set dbname chronos
 \set admin orchestrator
 \set puser process

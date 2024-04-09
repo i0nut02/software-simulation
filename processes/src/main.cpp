@@ -33,6 +33,7 @@ void executeRandomFunction() {
             synSleep(T);
             break;
         case 2:
+            alertBlocking();
             break;
         case 3:
             mySleep(T);

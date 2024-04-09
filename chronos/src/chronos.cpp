@@ -71,17 +71,17 @@ int Chronos::getSizeActiveProcesses() {
 
 int Chronos::acceptIncomingConn() {
     int pid;
-    int res = 0;
+    int count = 0;
     char query[QUERY_LEN];
 
-    while (1) {
+    while (count < this->numProcesses) {
         this->query_res = db.RunQuery("INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'listening for connections\', 0, NULL, NULL)", false);
         if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
             std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
             return -1;
         }
 
-        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
+        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
         assertReply(this->c2r, this->reply);
 
         if (ReadNumStreams(this->reply) == 0) {
@@ -103,9 +103,9 @@ int Chronos::acceptIncomingConn() {
         assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
         freeReplyObject(this->reply);
 
-        res++;
+        count++;
     }
-    return res;
+    return 0;
 }
 
 int Chronos::handleEvents() {
