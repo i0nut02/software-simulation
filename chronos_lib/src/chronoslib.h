@@ -1,5 +1,5 @@
-#ifndef CHRONS_LIB
-#define CHRONOS_LIB
+#ifndef CHRONOSLIB
+#define CHRONOSLIB
 
 #include <string>
 #include <iostream>
@@ -13,6 +13,9 @@
 #define POSTGRESQL_USER "orchestrator"
 #define POSTGRESQL_PSW "admin"
 #define POSTGRESQL_DBNAME "chronos"
+
+#define REQUEST_CONNECTION "request-connection"
+#define IDS_CONNECTION "ids-connection"
 
 #define VALUE_LEN 5000
 #define ORCHERTRATOR_ID 0
@@ -34,6 +37,6 @@ void mySleep(long double T);
 
 void disconnect();
 
-int logRedis(int from, int to, const char *action, long double reqVal);
+int logRedis(const char *stream, long double value);
 
 #endif

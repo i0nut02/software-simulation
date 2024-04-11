@@ -8,32 +8,38 @@ PGresult *_query_res;
 
 int connect(char *redisIP, int redisPort) {
     char value[VALUE_LEN];
-
     if (_pid != 0) {
-        std::cout << "pid is different that -1, problably you use two times connect" << std::endl;
+        std::cout << "pid is different than -1, problably you use two times connect" << std::endl;
         return 1;
     }
 
     _c2r = redisConnect(redisIP, redisPort);
-    initStreams(_c2r, "request-connection");
-    initStreams(_c2r, "ids-connection");
+    initStreams(_c2r, REQUEST_CONNECTION);
+    initStreams(_c2r, IDS_CONNECTION);
 
-    if (logRedis(NULL_PARAM, ORCHERTRATOR_ID, "request of connection", NULL_PARAM) != 0) {
+    std::cout << "1 " << REQUEST_CONNECTION << " " << IDS_CONNECTION << std::endl;
+
+    if (logRedis(static_cast<const char*>(REQUEST_CONNECTION), NULL_PARAM) != 0) {
         std::cout << "Error loging redis connection request" << std::endl;
         return 1;
     }
 
-    _reply = RedisCommand(_c2r, "XADD request-connection * request connection");
+    std::cout << "1" << std::endl;
+
+    _reply = RedisCommand(_c2r, "XADD %s * request connection", REQUEST_CONNECTION);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
+    std::cout << "1" << std::endl;
 
-    if (logRedis(NULL_PARAM, ORCHERTRATOR_ID, "waiting for process ID", NULL_PARAM) != 0) {
+    if (logRedis(static_cast<const char*>(IDS_CONNECTION), NULL_PARAM) != 0) {
         std::cout << "Error loging redis command to take process ID" << std::endl;
         return 1;
     }
 
-    _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS ids-connection >");
+    std::cout << "1" << std::endl;
+
+    _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS %s >", IDS_CONNECTION);
     assertReply(_c2r, _reply);
 
     ReadStreamMsgVal(_reply, 0, 0, 1, value);
@@ -54,7 +60,7 @@ int connect(char *redisIP, int redisPort) {
 }
 
 void alertBlocking() {
-    if (logRedis(_pid, ORCHERTRATOR_ID, "alert Blocking call", NULL_PARAM) != 0) {
+    if (logRedis((std::to_string(_pid) + "-orchestrator").c_str(), NULL_PARAM) != 0) {
         std::cout << "Error loging redis command to alert Blocking call" << std::endl;
         return;
     }
@@ -71,7 +77,7 @@ void synSleep(long double T) {
     memset(buffer, '\0', VALUE_LEN);
     std::snprintf(buffer, VALUE_LEN, "%Lf", T);
 
-    if (logRedis(_pid, ORCHERTRATOR_ID, "syn sleep request", T) != 0) {
+    if (logRedis((std::to_string(_pid) + "-orchestrator").c_str(), T) != 0) {
         std::cout << "Error loging redis command to syn sleep request" << std::endl;
         return;
     }
@@ -80,7 +86,7 @@ void synSleep(long double T) {
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
-    if (logRedis(_pid, ORCHERTRATOR_ID, "waiting for sync", NULL_PARAM) != 0) {
+    if (logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), NULL_PARAM) != 0) {
         std::cout << "Error loging redis command to waiting for sync" << std::endl;
         return;
     }
@@ -97,7 +103,7 @@ void mySleep(long double T) {
 }
 
 void disconnect() {
-    if (logRedis(_pid, ORCHERTRATOR_ID, "disconnection request", NULL_PARAM) != 0) {
+    if (logRedis((std::to_string(_pid) + "-orchestrator").c_str(), NULL_PARAM) != 0) {
         std::cout << "Error loging redis command to disconnect" << std::endl;
         return;
     }
@@ -109,16 +115,12 @@ void disconnect() {
     return;
 }
 
-int logRedis(int from, int to, const char *action, long double reqVal) {
-    std::string query = "INSERT INTO RedisLog VALUES(CURRENT_TIMESTAMP, \'"
-        + std::string(action)
-        + "\', "
-        + (from >= 0 ? std::to_string(from) : std::string("NULL"))
-        + ", "
-        + (to >= 0 ? std::to_string(to) : std::string("NULL"))
-        + ", "
-        + (reqVal > 0 ? std::to_string(reqVal) : std::string("NULL"))
-        + ")";
+int logRedis(const char *stream, long double value) {
+    std::string query = std::string("INSERT INTO RedisLog VALUES(CURRENT_TIMESTAMP, \'") +
+                        stream +
+                        "\', " +
+                        (value > 0 ? std::to_string(value) : std::string("NULL")) +
+                        ")";
 
     std::string mutable_query = query;
 

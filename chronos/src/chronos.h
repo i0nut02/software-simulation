@@ -38,6 +38,8 @@ using namespace std;
 #define VALUE_LEN 100
 #define QUERY_LEN 100
 
+#define NULL_VALUE -1
+
 /* Types */
 
 
@@ -76,6 +78,8 @@ class Chronos {
         void handleDisconnection(int pid);
 
         void handleSynSleepReq(int pid);
+
+        int logRedis(const char *stream, long double value);
 
     public:
         Chronos(int n);

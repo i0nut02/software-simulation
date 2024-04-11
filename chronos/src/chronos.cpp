@@ -75,10 +75,9 @@ int Chronos::acceptIncomingConn() {
     char query[QUERY_LEN];
 
     while (count < this->numProcesses) {
-        this->query_res = db.RunQuery("INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'listening for connections\', 0, NULL, NULL)", false);
-        if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+        if (logRedis(CONNECTION_REQUEST_STREAM, NULL_VALUE) != 0) {
             std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
-            return -1;
+            return 1;
         }
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
@@ -90,14 +89,10 @@ int Chronos::acceptIncomingConn() {
 
         pid = this->addProcess();
 
-        sprintf(query, "INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'sending ID\', 0, NULL, %d)", pid);
-
-        this->query_res = db.RunQuery(query, false);
-        if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+        if (logRedis(CONNECTION_ACCEPT_STREAM, pid) != 0) {
             std::cout << "Error inserting into the Redis Log the sending action" << std::endl;
-            return -1;
+            return 1;
         }
-        memset(query, 0, QUERY_LEN);
 
         this->reply = RedisCommand(this->c2r, "XADD %s * pid %d", CONNECTION_ACCEPT_STREAM, pid);
         assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -112,14 +107,10 @@ int Chronos::handleEvents() {
     char key[KEY_LEN], value[VALUE_LEN], query[QUERY_LEN];
 
     for (auto pid : this->activeProcesses) {
-        sprintf(query, "INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'listen for process request\', 0, %d, NULL)", pid);
-
-        this->query_res = db.RunQuery(query, false);
-        if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+        if (logRedis((std::to_string(pid) + "-orchestrator").c_str(), NULL_VALUE) != 0) {
             std::cout << "Error inserting into the Redis Log the listen for process " << pid << std::endl;
-            return -1;
+            return 1;
         }
-        memset(query, 0, QUERY_LEN);
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-orchestrator >", pid);
         assertReply(this->c2r, this->reply);
@@ -203,14 +194,10 @@ void Chronos::handleTime() {
         std::cout << simulationTime << std::endl;
 
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
-            sprintf(query, "INSERT INTO RedisLog VALUES (CURRENT_TIMESTAMP, \'sync process\', 0, %d, NULL)", this->syncProcessesTime.top().second);
-
-            this->query_res = db.RunQuery(query, false);
-            if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
-                std::cout << "Error inserting into the Redis Log the sync process " << this->syncProcessesTime.top().second << std::endl;
+            if (logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), NULL_VALUE) != 0) {
+                std::cout << "Error inserting into the Redis Log the sync for process " << this->syncProcessesTime.top().second << std::endl;
                 return;
             }
-            memset(query, 0, QUERY_LEN);
 
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -220,4 +207,22 @@ void Chronos::handleTime() {
         }
 
     }
+}
+
+int Chronos::logRedis(const char *stream, long double value) {
+    std::string query = std::string("INSERT INTO RedisLog VALUES(CURRENT_TIMESTAMP, \'") +
+                        stream +
+                        "\', " +
+                        (value > 0 ? std::to_string(value) : std::string("NULL")) +
+                        ")";
+
+    std::string mutable_query = query;
+
+    this->query_res = this->db.RunQuery(&mutable_query[0], false);
+    if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
+        std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
+        return -1;
+    }
+
+    return 0;
 }
