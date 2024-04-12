@@ -17,27 +17,19 @@ int connect(char *redisIP, int redisPort) {
     initStreams(_c2r, REQUEST_CONNECTION);
     initStreams(_c2r, IDS_CONNECTION);
 
-    std::cout << "1 " << REQUEST_CONNECTION << " " << IDS_CONNECTION << std::endl;
-
     if (logRedis(static_cast<const char*>(REQUEST_CONNECTION), NULL_PARAM) != 0) {
         std::cout << "Error loging redis connection request" << std::endl;
         return 1;
     }
 
-    std::cout << "1" << std::endl;
-
     _reply = RedisCommand(_c2r, "XADD %s * request connection", REQUEST_CONNECTION);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
-
-    std::cout << "1" << std::endl;
 
     if (logRedis(static_cast<const char*>(IDS_CONNECTION), NULL_PARAM) != 0) {
         std::cout << "Error loging redis command to take process ID" << std::endl;
         return 1;
     }
-
-    std::cout << "1" << std::endl;
 
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS %s >", IDS_CONNECTION);
     assertReply(_c2r, _reply);
@@ -111,6 +103,8 @@ void disconnect() {
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request disconnect", _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
+
+    _db.finish();
 
     return;
 }

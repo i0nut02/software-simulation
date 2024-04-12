@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "All the processes are connected" << std::endl;
 
-    while (ch->getSizeActiveProcesses() != 0) {
+    while (ch->getNumDisconnections() != ch->getNumProcesses()) {
         if (ch->handleEvents() != 0) {
             std::cout << "An error accour during event handling" << std::endl;
             return 1;
@@ -26,5 +26,6 @@ int main(int argc, char* argv[]) {
     }
 
     delete ch;
+    std::cout << "finish" << std::endl;
     return 0;
 }

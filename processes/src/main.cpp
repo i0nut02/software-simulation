@@ -26,7 +26,6 @@ void executeRandomFunction() {
     int choice = getRandomNumber(1, 3);
 
     long double T = getRandomNumber2(5.0, 100.0);
-    std::cout << T << std::endl;
 
     switch (choice) {
         case 1:
@@ -48,7 +47,7 @@ int main() {
         return 1;
     }
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 50; i++) {
         executeRandomFunction();
     }
 

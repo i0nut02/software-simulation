@@ -61,6 +61,10 @@ int Chronos::getNumProcesses() {
     return this->numProcesses;
 }
 
+int Chronos::getNumDisconnections() {
+    return this->disconnectedProcesses;
+}
+
 int Chronos::getNumBlockedProcesses(){
     return this->blockedProcesses.size();
 }
@@ -72,7 +76,6 @@ int Chronos::getSizeActiveProcesses() {
 int Chronos::acceptIncomingConn() {
     int pid;
     int count = 0;
-    char query[QUERY_LEN];
 
     while (count < this->numProcesses) {
         if (logRedis(CONNECTION_REQUEST_STREAM, NULL_VALUE) != 0) {
@@ -104,9 +107,11 @@ int Chronos::acceptIncomingConn() {
 }
 
 int Chronos::handleEvents() {
-    char key[KEY_LEN], value[VALUE_LEN], query[QUERY_LEN];
+    char key[KEY_LEN], value[VALUE_LEN];
 
-    for (auto pid : this->activeProcesses) {
+    std::set<int> copiedProcesses = this->activeProcesses;
+
+    for (auto pid : copiedProcesses) {
         if (logRedis((std::to_string(pid) + "-orchestrator").c_str(), NULL_VALUE) != 0) {
             std::cout << "Error inserting into the Redis Log the listen for process " << pid << std::endl;
             return 1;
@@ -124,8 +129,6 @@ int Chronos::handleEvents() {
 
         ReadStreamMsgVal(this->reply, 0, 0, 0, key);
         ReadStreamMsgVal(this->reply, 0, 0, 1, value);
-
-        std::cout << value << std::endl; 
 
         if (strcmp(key, "request") != 0) {
             return 1;
@@ -160,17 +163,16 @@ void Chronos::handleSynSleepReq(int pid) {
 
     ReadStreamMsgVal(reply, 0, 0, 3, value);
 
-    std::cout << value << std::endl;
-
     std::string strValue(value);
-
-
 
     std::pair<long double, int> pairToAdd;
     pairToAdd.first = std::stold(strValue) + this->simulationTime;
     pairToAdd.second = pid;
 
     this->syncProcessesTime.push(pairToAdd);
+    this->activeProcesses.erase(pid);
+
+    return;
 }
 
 
@@ -181,13 +183,12 @@ void Chronos::handleDisconnection(int pid) {
         this->activeProcesses.erase(pid);
         this->blockedProcesses.erase(pid);
     }
+    this->disconnectedProcesses += 1;
     return;
 }
 
 void Chronos::handleTime() {
-    char query[QUERY_LEN];
-
-    if (static_cast<std::size_t>(this->getSizeActiveProcesses() - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) {
+    if (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
 
@@ -203,7 +204,9 @@ void Chronos::handleTime() {
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
             freeReplyObject(this->reply);
 
+            this->activeProcesses.insert(this->syncProcessesTime.top().second);
             this->syncProcessesTime.pop();
+
         }
 
     }

@@ -49,6 +49,8 @@ using namespace std;
 class Chronos {
     private:
         int numProcesses;
+        int disconnectedProcesses;
+
         set<int> processIDs;
 
         long double simulationTime;
@@ -85,6 +87,8 @@ class Chronos {
         Chronos(int n);
 
         int getNumProcesses();
+
+        int getNumDisconnections();
 
         int getNumBlockedProcesses();
 
