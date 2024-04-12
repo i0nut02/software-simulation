@@ -15,6 +15,7 @@ Chronos::Chronos(int n) {
     initStreams(this->c2r, CONNECTION_ACCEPT_STREAM);
 
     this->simulationTime = 0;
+    this->disconnectedProcesses = 0;
 }
 
 int Chronos::addProcess() {
@@ -188,12 +189,11 @@ void Chronos::handleDisconnection(int pid) {
 }
 
 void Chronos::handleTime() {
-    if (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) {
+    if ((static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) && !this->syncProcessesTime.empty()) {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
 
         std::cout << simulationTime << std::endl;
-
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
             if (logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), NULL_VALUE) != 0) {
                 std::cout << "Error inserting into the Redis Log the sync for process " << this->syncProcessesTime.top().second << std::endl;

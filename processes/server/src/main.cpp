@@ -47,10 +47,23 @@ int main() {
         return 1;
     }
 
-    for (int i = 0; i < 50; i++) {
-        executeRandomFunction();
+    redisContext *c2r = redisConnect(REDIS_IP, REDIS_PORT);
+    redisReply *reply;
+
+    initStreams(c2r, "server");
+
+    long double T = 0;
+    while (1) {
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 10000 COUNT 1 STREAMS stream >");
+        assertReply(c2r, reply);
+
+        if (ReadNumStreams(reply) == 0) {
+            break;
+        }
+
+        synSleep(1);
     }
-    std::cout << "finished" << std::endl;
+
     disconnect();
     return 0;
 }

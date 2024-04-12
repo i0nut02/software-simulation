@@ -47,10 +47,22 @@ int main() {
         return 1;
     }
 
-    for (int i = 0; i < 50; i++) {
-        executeRandomFunction();
+    redisContext *c2r = redisConnect(REDIS_IP, REDIS_PORT);
+    redisReply *reply;
+
+    initStreams(c2r, "server");
+
+    long double T = 0;
+    while (T < LAST) {
+        long double g = getRandomNumber2(0.00001, ONEDAY);
+        T += g;
+        mySleep(g);
+
+        reply = RedisCommand(c2r, "XADD server * request continue");
+        assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+        freeReplyObject(reply);
     }
-    std::cout << "finished" << std::endl;
+
     disconnect();
     return 0;
 }

@@ -11,19 +11,42 @@ integer1=$1
 integer2=$2
 
 # Assuming folder names are folder1 and folder2, replace them with actual folder names
-folder1="./processes/server/src"
-folder2="./processes/client/src"
+folder1="./processes/server/bin"
+folder2="./processes/client/bin"
+
+perform_make() {
+    local folder="$1"
+    echo "Making in $folder"
+    (
+        cd "$folder"/../src || exit 1  # Change directory and exit if it fails
+        make clean; make # Run make
+    )
+}
 
 # Function to perform make n times
-perform_make() {
+run() {
     local folder="$1"
     local times="$2"
     echo "Making in $folder $times times"
-    (cd "$folder" && for _ in {1..$times}; do make; done)
+    (
+        cd "$folder" || exit 1  # Change directory and exit if it fails
+        i=1
+        while [ "$i" -le "$times" ]; do
+            ./main &  # Run ./main in the background
+            i=$((i + 1))  # Increment the counter
+        done
+    )
 }
 
+perform_make "$folder1"
+
+echo "\n\n\n"
+
+perform_make "$folder2"
+
 # Perform make in folder1 integer1 times
-perform_make "$folder1" "$integer1"
+run "$folder1" "$integer1"
 
 # Perform make in folder2 integer2 times
-perform_make "$folder2" "$integer2"
+run "$folder2" "$integer2"
+
