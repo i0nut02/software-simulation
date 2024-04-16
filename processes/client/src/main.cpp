@@ -54,7 +54,7 @@ int main() {
 
     long double T = 0;
     while (T < LAST) {
-        long double g = getRandomNumber2(0.00001, ONEDAY);
+        long double g = getRandomNumber2(0.00001, 2LL * SECOND);
         T += g;
         mySleep(g);
 
