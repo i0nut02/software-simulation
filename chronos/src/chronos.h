@@ -17,18 +17,12 @@ using namespace std;
 /* Local libraries */
 
 #include "../../con2redis/src/con2redis.h"
-#include "../../con2db/pgsql.h"
+#include "../../logger/src/logger.h"
 
 /* Local constants */
 
 #define REDIS_IP "localhost"
 #define REDIS_PORT 6379
-
-#define POSTGRESQL_SERVER "localhost"
-#define POSTGRESQL_PORT "5432"
-#define POSTGRESQL_USER "orchestrator"
-#define POSTGRESQL_PSW "admin"
-#define POSTGRESQL_DBNAME "chronos"
 
 #define CONNECTION_REQUEST_STREAM "request-connection"
 #define CONNECTION_ACCEPT_STREAM "ids-connection"
@@ -39,6 +33,7 @@ using namespace std;
 #define QUERY_LEN 100
 
 #define NULL_VALUE -1
+#define LOG_FILE "../../logfile.txt"
 
 /* Types */
 
@@ -50,6 +45,7 @@ class Chronos {
     private:
         int numProcesses;
         int disconnectedProcesses;
+        Logger logger{LOG_FILE};
 
         set<int> processIDs;
 
@@ -67,10 +63,6 @@ class Chronos {
 
         redisReply *reply;
 
-        PGresult *query_res;
-
-        Con2DB db = Con2DB(POSTGRESQL_SERVER, POSTGRESQL_PORT, POSTGRESQL_USER, POSTGRESQL_PSW, POSTGRESQL_DBNAME);
-
         int addProcess();
 
         int blockProcess(int pid);
@@ -81,7 +73,7 @@ class Chronos {
 
         void handleSynSleepReq(int pid);
 
-        int logRedis(const char *stream, long double value);
+        void logRedis(const char *stream, const char *message ,long double value);
 
     public:
         Chronos(int n);

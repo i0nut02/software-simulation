@@ -79,10 +79,7 @@ int Chronos::acceptIncomingConn() {
     int count = 0;
 
     while (count < this->numProcesses) {
-        if (logRedis(CONNECTION_REQUEST_STREAM, NULL_VALUE) != 0) {
-            std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
-            return 1;
-        }
+        logRedis(CONNECTION_REQUEST_STREAM, "waiting for new processes",NULL_VALUE);
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
         assertReply(this->c2r, this->reply);
@@ -93,10 +90,7 @@ int Chronos::acceptIncomingConn() {
 
         pid = this->addProcess();
 
-        if (logRedis(CONNECTION_ACCEPT_STREAM, pid) != 0) {
-            std::cout << "Error inserting into the Redis Log the sending action" << std::endl;
-            return 1;
-        }
+        logRedis(CONNECTION_ACCEPT_STREAM, "sending pid", pid);
 
         this->reply = RedisCommand(this->c2r, "XADD %s * pid %d", CONNECTION_ACCEPT_STREAM, pid);
         assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -113,10 +107,7 @@ int Chronos::handleEvents() {
     std::set<int> copiedProcesses = this->activeProcesses;
 
     for (auto pid : copiedProcesses) {
-        if (logRedis((std::to_string(pid) + "-orchestrator").c_str(), NULL_VALUE) != 0) {
-            std::cout << "Error inserting into the Redis Log the listen for process " << pid << std::endl;
-            return 1;
-        }
+        logRedis((std::to_string(pid) + "-orchestrator").c_str(), "reading for new messages", NULL_VALUE);
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-orchestrator >", pid);
         assertReply(this->c2r, this->reply);
@@ -193,12 +184,8 @@ void Chronos::handleTime() {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
 
-        std::cout << simulationTime << std::endl;
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
-            if (logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), NULL_VALUE) != 0) {
-                std::cout << "Error inserting into the Redis Log the sync for process " << this->syncProcessesTime.top().second << std::endl;
-                return;
-            }
+            logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), "sync the process", this->syncProcessesTime.top().second);
 
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -212,20 +199,13 @@ void Chronos::handleTime() {
     }
 }
 
-int Chronos::logRedis(const char *stream, long double value) {
-    std::string query = std::string("INSERT INTO RedisLog VALUES(CURRENT_TIMESTAMP, \'") +
-                        stream +
-                        "\', " +
-                        (value > 0 ? std::to_string(value) : std::string("NULL")) +
-                        ")";
+void Chronos::logRedis(const char *stream, const char *message ,long double value) {
+    std::string valueStr = std::to_string(value);
 
-    std::string mutable_query = query;
-
-    this->query_res = this->db.RunQuery(&mutable_query[0], false);
-    if (PQresultStatus(this->query_res) != PGRES_COMMAND_OK && PQresultStatus(this->query_res) != PGRES_TUPLES_OK) {
-        std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
-        return -1;
+    if (NULL_VALUE == value) {
+        valueStr = "";
     }
 
-    return 0;
+    logger.log(Logger::LogType::INFO, stream, message, valueStr);
+    return;
 }

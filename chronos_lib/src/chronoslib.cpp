@@ -3,8 +3,7 @@
 int _pid = 0;
 redisContext *_c2r;
 redisReply *_reply;
-Con2DB _db = Con2DB(POSTGRESQL_SERVER, POSTGRESQL_PORT, POSTGRESQL_USER, POSTGRESQL_PSW, POSTGRESQL_DBNAME);
-PGresult *_query_res;
+Logger _logger(LOG_FILE);
 
 int connect(char *redisIP, int redisPort) {
     char value[VALUE_LEN];
@@ -17,19 +16,13 @@ int connect(char *redisIP, int redisPort) {
     initStreams(_c2r, REQUEST_CONNECTION);
     initStreams(_c2r, IDS_CONNECTION);
 
-    if (logRedis(static_cast<const char*>(REQUEST_CONNECTION), NULL_PARAM) != 0) {
-        std::cout << "Error loging redis connection request" << std::endl;
-        return 1;
-    }
+    logRedis(static_cast<const char*>(REQUEST_CONNECTION), "request of connection to orchestrator", NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XADD %s * request connection", REQUEST_CONNECTION);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
-    if (logRedis(static_cast<const char*>(IDS_CONNECTION), NULL_PARAM) != 0) {
-        std::cout << "Error loging redis command to take process ID" << std::endl;
-        return 1;
-    }
+    logRedis(static_cast<const char*>(IDS_CONNECTION), "waiting for pid", NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS %s >", IDS_CONNECTION);
     assertReply(_c2r, _reply);
@@ -52,10 +45,7 @@ int connect(char *redisIP, int redisPort) {
 }
 
 void alertBlocking() {
-    if (logRedis((std::to_string(_pid) + "-orchestrator").c_str(), NULL_PARAM) != 0) {
-        std::cout << "Error loging redis command to alert Blocking call" << std::endl;
-        return;
-    }
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), "alert blocking call", NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request alertBlocking", _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
@@ -69,19 +59,13 @@ void synSleep(long double T) {
     memset(buffer, '\0', VALUE_LEN);
     std::snprintf(buffer, VALUE_LEN, "%Lf", T);
 
-    if (logRedis((std::to_string(_pid) + "-orchestrator").c_str(), T) != 0) {
-        std::cout << "Error loging redis command to syn sleep request" << std::endl;
-        return;
-    }
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), "syn sleep request", T);
 
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request synSleep time %s", _pid, buffer);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
-    if (logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), NULL_PARAM) != 0) {
-        std::cout << "Error loging redis command to waiting for sync" << std::endl;
-        return;
-    }
+    logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), "waiting for syncronization", NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
     assertReply(_c2r, _reply);
@@ -95,34 +79,22 @@ void mySleep(long double T) {
 }
 
 void disconnect() {
-    if (logRedis((std::to_string(_pid) + "-orchestrator").c_str(), NULL_PARAM) != 0) {
-        std::cout << "Error loging redis command to disconnect" << std::endl;
-        return;
-    }
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), "disconnection", NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request disconnect", _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
-    _db.finish();
-
     return;
 }
 
-int logRedis(const char *stream, long double value) {
-    std::string query = std::string("INSERT INTO RedisLog VALUES(CURRENT_TIMESTAMP, \'") +
-                        stream +
-                        "\', " +
-                        (value > 0 ? std::to_string(value) : std::string("NULL")) +
-                        ")";
+void logRedis(const char *stream, const char *message ,long double value) {
+    std::string valueStr = std::to_string(value);
 
-    std::string mutable_query = query;
-
-    _query_res = _db.RunQuery(&mutable_query[0], false);
-    if (PQresultStatus(_query_res) != PGRES_COMMAND_OK && PQresultStatus(_query_res) != PGRES_TUPLES_OK) {
-        std::cout << "Error inserting into the Redis Log the listening action" << std::endl;
-        return -1;
+    if (NULL_PARAM == value) {
+        valueStr = "";
     }
 
-    return 0;
+    _logger.log(Logger::LogType::INFO, stream, message, valueStr);
+    return;
 }

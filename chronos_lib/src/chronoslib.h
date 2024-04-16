@@ -6,16 +6,12 @@
 #include <cstring>
 
 #include "../../con2redis/src/con2redis.h"
-#include "../../con2db/pgsql.h"
-
-#define POSTGRESQL_SERVER "localhost"
-#define POSTGRESQL_PORT "5432"
-#define POSTGRESQL_USER "orchestrator"
-#define POSTGRESQL_PSW "admin"
-#define POSTGRESQL_DBNAME "chronos"
+#include "../../logger/src/logger.h"
 
 #define REQUEST_CONNECTION "request-connection"
 #define IDS_CONNECTION "ids-connection"
+
+#define LOG_FILE "../../logfile.txt"
 
 #define VALUE_LEN 5000
 #define ORCHERTRATOR_ID 0
@@ -23,9 +19,7 @@
 
 extern int _pid;
 extern redisContext *_c2r;
-extern redisReply *_reply;
-extern Con2DB _db;
-extern PGresult *_query_res;
+extern Logger _logger;
 
 int connect(char *redisIP = const_cast<char*>("localhost"), int redisPort = 6379);
 
@@ -37,6 +31,6 @@ void mySleep(long double T);
 
 void disconnect();
 
-int logRedis(const char *stream, long double value);
+void logRedis(const char *stream, const char *message ,long double value);
 
 #endif
