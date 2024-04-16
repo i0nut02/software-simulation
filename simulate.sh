@@ -27,7 +27,7 @@ perform_make() {
 run() {
     local folder="$1"
     local times="$2"
-    echo "Making in $folder $times times"
+    echo "Run in $folder $times times"
     (
         cd "$folder" || exit 1  # Change directory and exit if it fails
         i=1

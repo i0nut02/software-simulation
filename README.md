@@ -12,3 +12,6 @@
     - each 2 and half seconds a client make a request to the server that take 1 millisecond to respond 15 minutes simulation [5 minutes and 32 seconds]
     - each second a client make a request and the server that take 1 millisecond to respond 10 minutes simulation [9 minutes]
     - each half second a client make a request and the server that take 1 millisecond to respond 10 minutes simulation [FAILED]
+
+- 100 clients and 1 server
+    - each 2 and half seconds a client make a request to the server that take 1 millisecond to respond 15 minutes simulation [11 minutes]
