@@ -11,7 +11,7 @@
 #define REQUEST_CONNECTION "request-connection"
 #define IDS_CONNECTION "ids-connection"
 
-#define LOG_FILE "../../logfile.txt"
+#define LOG_FILE "../../../logfile.txt"
 
 #define VALUE_LEN 5000
 #define ORCHERTRATOR_ID 0
