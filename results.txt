@@ -6,3 +6,5 @@ numero servers | numero clients | freq richieste clients/sec | tempo simulato | 
       1        |      100       |        4 al secondo        |     10 min     |  2 min 12 sec   |   1.5ML
       1        |      150       |        4 al secondo        |     10 min     |  2 min 40 sec   |    2ML
       1        |      200       |        4 al secondo        |     10 min     |  3 min 50 sec   |   2.7ML
+      1        |      100       |       10 al secondo        |     10 min     |  3 min 16 sec   |   3.3ML
+      1        |      150       |       10 al secondo        |     10 min     |  4 min 50 sec   |    5ML
