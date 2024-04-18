@@ -137,6 +137,11 @@ int Chronos::handleEvents() {
         if (strcmp(value, "disconnect") == 0){
             this->handleDisconnection(pid);
         }
+
+        if (strcmp(value, "mySleep") == 0){
+            this->handleSynSleepReq(pid);
+        }
+
     }
     return 0;
 }

@@ -74,7 +74,21 @@ void synSleep(long double T) {
 }
 
 void mySleep(long double T) {
-    synSleep(T);
+    char buffer[VALUE_LEN];
+    memset(buffer, '\0', VALUE_LEN);
+    std::snprintf(buffer, VALUE_LEN, "%Lf", T);
+
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), SYN_SLEEP, T);
+
+    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request mySleep time %s", _pid, buffer);
+    assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
+    freeReplyObject(_reply);
+
+    logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), WAIT_SYNC, NULL_PARAM);
+
+    _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
+    assertReply(_c2r, _reply);
+
     return;
 }
 
