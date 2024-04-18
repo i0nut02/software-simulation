@@ -34,6 +34,17 @@ void Logger::log(LogType type, const std::string& stream, const std::string& mes
     file.flush(); // Flush to ensure immediate write
 }
 
+void Logger::redisLog(const std::string& stream, const std::string& message, const std::string& value) {
+    std::lock_guard<std::mutex> lock(mutex); // Lock the mutex for this scope
+
+    // Write to the file
+    file << getCurrentTimeWithMilliseconds() << "; ";
+
+    file << stream << "; " << message << "; " << value << std::endl;
+    file.flush(); // Flush to ensure immediate write
+}
+
+
 std::string Logger::getCurrentTimeWithMilliseconds() const {
     auto now = std::chrono::system_clock::now();
     auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);

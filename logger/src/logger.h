@@ -12,6 +12,7 @@ public:
     Logger(const std::string& filename);
 
     void log(LogType type, const std::string& stream, const std::string& message, const std::string& value);
+    void redisLog(const std::string& stream, const std::string& message, const std::string& value);
 
 private:
     std::string filename;
