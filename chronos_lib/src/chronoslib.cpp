@@ -16,13 +16,13 @@ int connect(char *redisIP, int redisPort) {
     initStreams(_c2r, REQUEST_CONNECTION);
     initStreams(_c2r, IDS_CONNECTION);
 
-    logRedis(static_cast<const char*>(REQUEST_CONNECTION), "request of connection to orchestrator", NULL_PARAM);
+    logRedis(static_cast<const char*>(REQUEST_CONNECTION), CONN_REQ, NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XADD %s * request connection", REQUEST_CONNECTION);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
-    logRedis(static_cast<const char*>(IDS_CONNECTION), "waiting for pid", NULL_PARAM);
+    logRedis(static_cast<const char*>(IDS_CONNECTION), WAIT_ID, NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS %s >", IDS_CONNECTION);
     assertReply(_c2r, _reply);
@@ -45,7 +45,7 @@ int connect(char *redisIP, int redisPort) {
 }
 
 void alertBlocking() {
-    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), "alert blocking call", NULL_PARAM);
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), BLOCKING_CALL, NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request alertBlocking", _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
@@ -59,13 +59,13 @@ void synSleep(long double T) {
     memset(buffer, '\0', VALUE_LEN);
     std::snprintf(buffer, VALUE_LEN, "%Lf", T);
 
-    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), "syn sleep request", T);
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), SYN_SLEEP, T);
 
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request synSleep time %s", _pid, buffer);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
-    logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), "waiting for syncronization", NULL_PARAM);
+    logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), WAIT_SYNC, NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
     assertReply(_c2r, _reply);
@@ -79,7 +79,7 @@ void mySleep(long double T) {
 }
 
 void disconnect() {
-    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), "disconnection", NULL_PARAM);
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), DISCONNECT, NULL_PARAM);
 
     _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request disconnect", _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
@@ -88,13 +88,13 @@ void disconnect() {
     return;
 }
 
-void logRedis(const char *stream, const char *message ,long double value) {
+void logRedis(const char *stream, int message ,long double value) {
     std::string valueStr = std::to_string(value);
 
     if (NULL_PARAM == value) {
         valueStr = "";
     }
 
-    _logger.log(Logger::LogType::INFO, stream, message, valueStr);
+    _logger.redisLog(stream, message, valueStr);
     return;
 }

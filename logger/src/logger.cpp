@@ -34,7 +34,7 @@ void Logger::log(LogType type, const std::string& stream, const std::string& mes
     file.flush(); // Flush to ensure immediate write
 }
 
-void Logger::redisLog(const std::string& stream, const std::string& message, const std::string& value) {
+void Logger::redisLog(const std::string& stream, int message, const std::string& value) {
     std::lock_guard<std::mutex> lock(mutex); // Lock the mutex for this scope
 
     // Write to the file

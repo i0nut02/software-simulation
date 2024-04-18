@@ -13,6 +13,14 @@
 
 #define LOG_FILE "../../../logfile.txt"
 
+#define CONN_REQ 5
+#define WAIT_ID 6
+#define BLOCKING_CALL 7
+#define SYN_SLEEP 8
+#define MY_SLEEP 9
+#define WAIT_SYNC 10
+#define DISCONNECT 11
+
 #define VALUE_LEN 5000
 #define ORCHERTRATOR_ID 0
 #define NULL_PARAM -1
@@ -31,6 +39,6 @@ void mySleep(long double T);
 
 void disconnect();
 
-void logRedis(const char *stream, const char *message ,long double value);
+void logRedis(const char *stream, int message ,long double value);
 
 #endif

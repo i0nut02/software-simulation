@@ -35,6 +35,11 @@ using namespace std;
 #define NULL_VALUE -1
 #define LOG_FILE "../../logfile.txt"
 
+#define READ_CONNECTIONS 0
+#define SEND_ID 1
+#define READ_STREAM 2
+#define SYNC_PROCESS 3
+
 /* Types */
 
 
@@ -73,7 +78,7 @@ class Chronos {
 
         void handleSynSleepReq(int pid);
 
-        void logRedis(const char *stream, const char *message ,long double value);
+        void logRedis(const char *stream, int message ,long double value);
 
     public:
         Chronos(int n);

@@ -79,7 +79,7 @@ int Chronos::acceptIncomingConn() {
     int count = 0;
 
     while (count < this->numProcesses) {
-        logRedis(CONNECTION_REQUEST_STREAM, "waiting for new processes",NULL_VALUE);
+        logRedis(CONNECTION_REQUEST_STREAM, READ_CONNECTIONS, NULL_VALUE);
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
         assertReply(this->c2r, this->reply);
@@ -90,7 +90,7 @@ int Chronos::acceptIncomingConn() {
 
         pid = this->addProcess();
 
-        logRedis(CONNECTION_ACCEPT_STREAM, "sending pid", pid);
+        logRedis(CONNECTION_ACCEPT_STREAM, SEND_ID, pid);
 
         this->reply = RedisCommand(this->c2r, "XADD %s * pid %d", CONNECTION_ACCEPT_STREAM, pid);
         assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -107,7 +107,7 @@ int Chronos::handleEvents() {
     std::set<int> copiedProcesses = this->activeProcesses;
 
     for (auto pid : copiedProcesses) {
-        logRedis((std::to_string(pid) + "-orchestrator").c_str(), "reading for new messages", NULL_VALUE);
+        logRedis((std::to_string(pid) + "-orchestrator").c_str(), READ_STREAM, NULL_VALUE);
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-orchestrator >", pid);
         assertReply(this->c2r, this->reply);
@@ -185,7 +185,7 @@ void Chronos::handleTime() {
         this->simulationTime = top.first;
 
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
-            logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), "sync the process", this->syncProcessesTime.top().second);
+            logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), SYNC_PROCESS, this->syncProcessesTime.top().second);
 
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -199,13 +199,13 @@ void Chronos::handleTime() {
     }
 }
 
-void Chronos::logRedis(const char *stream, const char *message ,long double value) {
+void Chronos::logRedis(const char *stream, int message ,long double value) {
     std::string valueStr = std::to_string(value);
 
     if (NULL_VALUE == value) {
         valueStr = "";
     }
 
-    logger.log(Logger::LogType::INFO, stream, message, valueStr);
+    logger.redisLog(stream, message, valueStr);
     return;
 }
