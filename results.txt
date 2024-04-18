@@ -1,10 +1,11 @@
 numero servers | numero clients | freq richieste clients/sec | tempo simulato | tempo richiesto | ~righe log
-      1        |      100       |        2 al secondo        |     15 min     |  1 min 10 sec   |    1ML
-      1        |      150       |        2 al secondo        |     15 min     |  2 min 16 sec   |   1.5ML
-      1        |      200       |        2 al secondo        |     15 min     |  2 min 54 sec   |    2ML
-      1        |      250       |        2 al secondo        |     15 min     |  3 min 50 sec   |   2.5ML
-      1        |      100       |        4 al secondo        |     10 min     |  2 min 12 sec   |   1.5ML
-      1        |      150       |        4 al secondo        |     10 min     |  2 min 40 sec   |    2ML
-      1        |      200       |        4 al secondo        |     10 min     |  3 min 50 sec   |   2.7ML
-      1        |      100       |       10 al secondo        |     10 min     |  3 min 16 sec   |   3.3ML
-      1        |      150       |       10 al secondo        |     10 min     |  4 min 50 sec   |    5ML
+      1        |      100       |        2 al secondo        |     10 min     |  1 min 51 sec   |   1.7ML
+      1        |      150       |        2 al secondo        |     10 min     |  2 min 30 sec   |   2.5ML
+      1        |      200       |        2 al secondo        |     10 min     |  3 min 15 sec   |   3.3ML
+      1        |      250       |        2 al secondo        |     10 min     |  4 min 00 sec   |   4.1ML
+      1        |      100       |        4 al secondo        |     10 min     |  3 min 14 sec   |   3.3ML
+      1        |      150       |        4 al secondo        |     10 min     | Connection reset|    ???
+      1        |      200       |        4 al secondo        |     10 min     | Connection reset|    ???
+      1        |      100       |       10 al secondo        |     10 min     | Connection reset|    ???
+      1        |      150       |       10 al secondo        |     10 min     | Connection reset|    ???
+ NULL redisReply (error: Server closed the connection)
