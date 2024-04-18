@@ -142,6 +142,10 @@ int Chronos::handleEvents() {
             this->handleSynSleepReq(pid);
         }
 
+        if (strcmp(value, "alertUnblock") == 0){
+            this->unblockProcess(pid);
+        }
+
     }
     return 0;
 }

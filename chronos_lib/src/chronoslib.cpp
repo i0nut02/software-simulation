@@ -92,6 +92,16 @@ void mySleep(long double T) {
     return;
 }
 
+void unblock() {
+    logRedis((std::to_string(_pid) + "-orchestrator").c_str(), UNBLOCK, NULL_PARAM);
+
+    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request alertUnblock", _pid);
+    assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
+    freeReplyObject(_reply);
+
+    return;
+}
+
 void disconnect() {
     logRedis((std::to_string(_pid) + "-orchestrator").c_str(), DISCONNECT, NULL_PARAM);
 

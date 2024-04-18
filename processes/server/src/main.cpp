@@ -50,16 +50,21 @@ int main() {
     redisContext *c2r = redisConnect(REDIS_IP, REDIS_PORT);
     redisReply *reply;
 
+    reply = RedisCommand(c2r, "DEL server");
+    assertReply(c2r, reply);
+
     initStreams(c2r, "server");
 
     long double T = 0;
     while (1) {
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 10000 COUNT 1 STREAMS stream >");
+        alertBlocking();
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter server BLOCK 5000 COUNT 1 STREAMS server >");
         assertReply(c2r, reply);
 
         if (ReadNumStreams(reply) == 0) {
             break;
         }
+        unblock();
 
         synSleep(1);
     }
