@@ -20,5 +20,5 @@ numero servers | numero clients | freq richieste clients/sec | tempo simulato | 
       1        |      250       |        2 al secondo        |     10 min     |   2 min  9 sec  |     0
       1        |      100       |        4 al secondo        |     10 min     |   1 min 41 sec  |     0
       1        |      150       |        4 al secondo        |     10 min     |   2 min 33 sec  |     0
-      1        |       50       |       10 al secondo        |     10 min     |   3 min  7 sec  |     0?
+      1        |       50       |       10 al secondo        |     10 min     |   3 min  7 sec  |     0
 
