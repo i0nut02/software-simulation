@@ -54,9 +54,10 @@ int main() {
 
     long double T = 0;
     while (T < LAST) {
-        long double g = getRandomNumber2(0.00001, 1LL * SECOND);
+        long double g = getRandomNumber2(0.00001, 0.2 * SECOND);
         T += g;
         mySleep(g);
+
 
         reply = RedisCommand(c2r, "XADD server * request continue");
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);

@@ -23,14 +23,17 @@
 #define DISCONNECT 12
 
 #define VALUE_LEN 5000
+#define KEY_LEN 100
 #define ORCHERTRATOR_ID 0
 #define NULL_PARAM -1
 
 extern int _pid;
+extern int _logLvl;
 extern redisContext *_c2r;
+extern redisReply *_reply;
 extern Logger _logger;
 
-int connect(char *redisIP = const_cast<char*>("localhost"), int redisPort = 6379);
+int connect(char *redisIP = const_cast<char*>("localhost"), int redisPort = 6379, int logLvl = -1);
 
 void alertBlocking();
 

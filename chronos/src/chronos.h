@@ -68,6 +68,8 @@ class Chronos {
 
         redisReply *reply;
 
+        int logLvl;
+
         int addProcess();
 
         int blockProcess(int pid);
@@ -81,7 +83,7 @@ class Chronos {
         void logRedis(const char *stream, int message ,long double value);
 
     public:
-        Chronos(int n);
+        Chronos(int n, int logLvl = -1);
 
         int getNumProcesses();
 

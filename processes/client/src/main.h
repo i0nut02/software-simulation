@@ -16,7 +16,8 @@
 
 #define SECOND 1000
 #define ONEDAY (60LL * 60LL * 24LL * SECOND)
-#define LAST (SECOND * 60LL * 15LL)
+#define LAST (SECOND * 60LL * 10LL)
+
 
 
 #endif

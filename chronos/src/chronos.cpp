@@ -1,6 +1,6 @@
 #include "chronos.h"
 
-Chronos::Chronos(int n) {
+Chronos::Chronos(int n, int logLvl) {
     this->numProcesses = n;
     this->upperRandInt = (n + 2) * (n + 2);
     this->c2r = redisConnect(REDIS_IP, REDIS_PORT);
@@ -16,6 +16,7 @@ Chronos::Chronos(int n) {
 
     this->simulationTime = 0;
     this->disconnectedProcesses = 0;
+    this->logLvl = logLvl;
 }
 
 int Chronos::addProcess() {
@@ -79,7 +80,9 @@ int Chronos::acceptIncomingConn() {
     int count = 0;
 
     while (count < this->numProcesses) {
-        logRedis(CONNECTION_REQUEST_STREAM, READ_CONNECTIONS, NULL_VALUE);
+        if (this->logLvl > 0) {
+            logRedis(CONNECTION_REQUEST_STREAM, READ_CONNECTIONS, NULL_VALUE);
+        }
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
         assertReply(this->c2r, this->reply);
@@ -90,7 +93,9 @@ int Chronos::acceptIncomingConn() {
 
         pid = this->addProcess();
 
-        logRedis(CONNECTION_ACCEPT_STREAM, SEND_ID, pid);
+        if (this->logLvl > 0) {
+            logRedis(CONNECTION_ACCEPT_STREAM, SEND_ID, pid);
+        }
 
         this->reply = RedisCommand(this->c2r, "XADD %s * pid %d", CONNECTION_ACCEPT_STREAM, pid);
         assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
@@ -107,7 +112,10 @@ int Chronos::handleEvents() {
     std::set<int> copiedProcesses = this->activeProcesses;
 
     for (auto pid : copiedProcesses) {
-        logRedis((std::to_string(pid) + "-orchestrator").c_str(), READ_STREAM, NULL_VALUE);
+
+        if (this->logLvl > 1) {
+            logRedis((std::to_string(pid) + "-orchestrator").c_str(), READ_STREAM, NULL_VALUE);
+        }
 
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-orchestrator >", pid);
         assertReply(this->c2r, this->reply);
@@ -185,6 +193,13 @@ void Chronos::handleDisconnection(int pid) {
         this->blockedProcesses.erase(pid);
     }
     this->disconnectedProcesses += 1;
+
+    reply = RedisCommand(c2r, "DEL %d-orchestrator", pid);
+    assertReply(c2r, reply);
+
+    reply = RedisCommand(c2r, "DEL orchestrator-%d", pid);
+    assertReply(c2r, reply);
+
     return;
 }
 
@@ -194,7 +209,9 @@ void Chronos::handleTime() {
         this->simulationTime = top.first;
 
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
-            logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), SYNC_PROCESS, this->syncProcessesTime.top().second);
+            if (this->logLvl >= 0) {
+                logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), SYNC_PROCESS, this->syncProcessesTime.top().second);
+            }
 
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);

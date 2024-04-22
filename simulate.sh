@@ -40,7 +40,7 @@ run() {
 
 perform_make "$folder1"
 
-echo "\n\n\n"
+echo "\n\n"
 
 perform_make "$folder2"
 

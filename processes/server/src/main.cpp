@@ -58,7 +58,7 @@ int main() {
     long double T = 0;
     while (1) {
         alertBlocking();
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter server BLOCK 5000 COUNT 1 STREAMS server >");
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter server BLOCK 3000 COUNT 1 STREAMS server >");
         assertReply(c2r, reply);
 
         if (ReadNumStreams(reply) == 0) {
@@ -70,5 +70,8 @@ int main() {
     }
 
     disconnect();
+    
+    reply = RedisCommand(c2r, "DEL server");
+    assertReply(c2r, reply);
     return 0;
 }
