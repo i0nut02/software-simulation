@@ -38,9 +38,9 @@ void Logger::redisLog(const std::string& stream, int message, const std::string&
     std::lock_guard<std::mutex> lock(mutex); // Lock the mutex for this scope
 
     // Write to the file
-    file << getCurrentTimeWithMilliseconds() << "; ";
+    file << getCurrentTimeWithMilliseconds() << ";";
 
-    file << stream << "; " << message << "; " << value << std::endl;
+    file << stream << ";" << message << ";" << value << std::endl;
     file.flush(); // Flush to ensure immediate write
 }
 

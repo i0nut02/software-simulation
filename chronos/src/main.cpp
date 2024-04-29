@@ -27,6 +27,7 @@ int main(int argc, char* argv[]) {
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&now_c));
 
     // Print the string representation
+    std::cout << buffer << std::endl;
 
     while (ch->getNumDisconnections() != ch->getNumProcesses()) {
         if (ch->handleEvents() != 0) {
@@ -35,12 +36,14 @@ int main(int argc, char* argv[]) {
         }
         ch->handleTime();
     }
-    std::cout << buffer << std::endl;
 
     now = std::chrono::system_clock::now();
     now_c = std::chrono::system_clock::to_time_t(now);
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&now_c));
+    
     std::cout << buffer << std::endl;
+
+    std::cout << ch->requests << std::endl;
     
     delete ch;
     std::cout << "finish" << std::endl;

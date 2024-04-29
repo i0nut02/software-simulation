@@ -83,7 +83,7 @@ class Chronos {
         void logRedis(const char *stream, int message ,long double value);
 
     public:
-        Chronos(int n, int logLvl = -1);
+        Chronos(int n, int logLvl = 3);
 
         int getNumProcesses();
 
@@ -98,6 +98,8 @@ class Chronos {
         int handleEvents();
 
         void handleTime();
+
+        long int requests = 0;
 };
 
 #endif

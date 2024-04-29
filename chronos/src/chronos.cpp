@@ -166,6 +166,8 @@ void Chronos::handleSynSleepReq(int pid) {
         return;
     }
 
+    this->requests += 1;
+
     if (this->blockedProcesses.count(pid) > 0) {
         this->unblockProcess(pid);
     }
