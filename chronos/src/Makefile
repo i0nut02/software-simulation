@@ -19,6 +19,7 @@ all:	create_dirs con2redis logger $(ODIR)/$(OBJ) $(BDIR)/main
 
 create_dirs:
 	mkdir -p $(ODIR)
+	mkdir -p $(BDIR)
 
 con2redis:
 	$(MAKE) -C ../../con2redis/src/

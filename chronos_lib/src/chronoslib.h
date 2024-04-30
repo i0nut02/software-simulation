@@ -33,7 +33,7 @@ extern redisContext *_c2r;
 extern redisReply *_reply;
 extern Logger _logger;
 
-int connect(char *redisIP = const_cast<char*>("localhost"), int redisPort = 6379, int logLvl = -1);
+int connect(char *redisIP = const_cast<char*>("localhost"), int redisPort = 6379, int logLvl = 3);
 
 void alertBlocking();
 

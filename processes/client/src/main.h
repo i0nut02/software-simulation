@@ -14,9 +14,10 @@
 #define REDIS_IP "localhost"
 #define REDIS_PORT 6379
 
-#define SECOND 1000
+#define SECOND 1
 #define ONEDAY (60LL * 60LL * 24LL * SECOND)
-#define LAST (SECOND * 60LL * 10LL)
+#define LAST (30LL * ONEDAY)
+
 
 
 

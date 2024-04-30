@@ -1,24 +1,13 @@
 
-ALL Logs
+ALL Logs  (meno 5 secondi fino a 3k)
 numero servers | numero clients | freq richieste clients/sec | tempo simulato | tempo richiesto | ~righe log
-      1        |      250       |        2 al secondo        |     10 min     |   3 min 54 sec  |    4.2ML
-      1        |      100       |        4 al secondo        |     10 min     |   3 min  5 sec  |    3.3ML
-      1        |      150       |        4 al secondo        |     10 min     |   4 min 30 sec  |     5ML
-      1        |       50       |       10 al secondo        |     10 min     |   3 min 46 sec  |    4.1ML
-
-
-Commands sended by chronos clients (synSleep, mySleep, alertBlocking, unBlock)
-numero servers | numero clients | freq richieste clients/sec | tempo simulato | tempo richiesto | ~righe log
-      1        |      250       |        2 al secondo        |     10 min     |   3 min 25 sec  |    2.4ML
-      1        |      100       |        4 al secondo        |     10 min     |   2 min 43 sec  |    1.9ML
-      1        |      150       |        4 al secondo        |     10 min     |   3 min  9 sec  |    2.8ML
-      1        |       50       |       10 al secondo        |     10 min     |   3 min 21 sec  |    2.4ML
-
-
-0 Logs
-numero servers | numero clients | freq richieste clients/sec | tempo simulato | tempo richiesto | ~righe log
-      1        |      250       |        2 al secondo        |     10 min     |   2 min  9 sec  |     0
-      1        |      100       |        4 al secondo        |     10 min     |   1 min 41 sec  |     0
-      1        |      150       |        4 al secondo        |     10 min     |   2 min 33 sec  |     0
-      1        |       50       |       10 al secondo        |     10 min     |   3 min  7 sec  |     0
+      1        |      150       |        1 al giorno         |    30 giorni   |       5 sec     |    170K
+      1        |      300       |        1 al giorno         |    30 giorni   |      17 sec     |    260K
+      1        |      500       |        1 al giorno         |    30 giorni   |      23 sec     |    385K
+      1        |      800       |        1 al giorno         |    30 giorni   |      35 sec     |    577K
+      1        |     1200       |        1 al giorno         |    30 giorni   |      40 sec     |    788K
+      1        |     1500       |        1 al giorno         |    30 giorni   |      52 sec     |    980K
+      1        |     2000       |        1 al giorno         |    30 giorni   |   1min 08 sec   |    1.2ML
+      1        |     3000       |        1 al giorno         |    30 giorni   |   1min 45 sec   |    1.8ML
+      1        |     4000       |        1 al giorno         |    30 giorni   |   2min 21 sec   |    2.6ML
 

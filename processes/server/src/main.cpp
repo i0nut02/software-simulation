@@ -53,12 +53,17 @@ int main() {
     reply = RedisCommand(c2r, "DEL server");
     assertReply(c2r, reply);
 
+    reply = RedisCommand(c2r, "DEL customer");
+    assertReply(c2r, reply);
+
     initStreams(c2r, "server");
+    initStreams(c2r, "customer");
 
     long double T = 0;
     while (1) {
+
         alertBlocking();
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter server BLOCK 3000 COUNT 1 STREAMS server >");
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter server BLOCK 10000 COUNT 1 STREAMS server >");
         assertReply(c2r, reply);
 
         if (ReadNumStreams(reply) == 0) {
@@ -66,12 +71,20 @@ int main() {
         }
         unblock();
 
+        reply = RedisCommand(c2r, "XADD customer * request continue");
+        assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+        freeReplyObject(reply);
+
         synSleep(1);
     }
-
+    std::cout << "boh" << std::endl;
     disconnect();
     
     reply = RedisCommand(c2r, "DEL server");
     assertReply(c2r, reply);
+
+    reply = RedisCommand(c2r, "DEL customer");
+    assertReply(c2r, reply);
+
     return 0;
 }

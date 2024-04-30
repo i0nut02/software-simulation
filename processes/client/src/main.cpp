@@ -51,17 +51,25 @@ int main() {
     redisReply *reply;
 
     initStreams(c2r, "server");
+    initStreams(c2r, "customer");
 
     long double T = 0;
     while (T < LAST) {
-        long double g = getRandomNumber2(0.00001, 0.2 * SECOND);
+        long double g = getRandomNumber2(0.00001, 2 * ONEDAY);
         T += g;
-        mySleep(g);
 
+        synSleep(g);
 
         reply = RedisCommand(c2r, "XADD server * request continue");
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
+
+        alertBlocking();
+
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter boh BLOCK 0 COUNT 1 STREAMS customer >");
+        assertReply(c2r, reply);
+
+        unblock();
     }
 
     disconnect();
