@@ -10,6 +10,7 @@
 
 #define REQUEST_CONNECTION "request-connection"
 #define IDS_CONNECTION "ids-connection"
+#define SEND_STREAM "orchestrator-in"
 
 #define LOG_FILE "../../../logfile.txt"
 

@@ -26,6 +26,7 @@ using namespace std;
 
 #define CONNECTION_REQUEST_STREAM "request-connection"
 #define CONNECTION_ACCEPT_STREAM "ids-connection"
+#define RECEIVE_STREAM "orchestrator-in"
 
 #define MIN_BLOCK 1 // milliseconds (0 == bocking call)
 #define KEY_LEN 100

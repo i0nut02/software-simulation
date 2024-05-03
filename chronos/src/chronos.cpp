@@ -11,8 +11,12 @@ Chronos::Chronos(int n, int logLvl) {
     this->reply = RedisCommand(this->c2r, "DEL %s", CONNECTION_ACCEPT_STREAM);
     assertReply(this->c2r, this->reply);
 
+    this->reply = RedisCommand(this->c2r, "DEL %s", RECEIVE_STREAM);
+    assertReply(this->c2r, this->reply);
+
     initStreams(this->c2r, CONNECTION_REQUEST_STREAM);
     initStreams(this->c2r, CONNECTION_ACCEPT_STREAM);
+    initStreams(this->c2r, RECEIVE_STREAM);
 
     this->simulationTime = 0;
     this->disconnectedProcesses = 0;
@@ -30,13 +34,7 @@ int Chronos::addProcess() {
     this->processIDs.insert(pid);
     this->activeProcesses.insert(pid);
 
-    std::string new_stream = std::to_string(pid) + "-orchestrator";
-    
-    this->reply = RedisCommand(this->c2r, "DEL %s", new_stream.c_str());
-    assertReply(this->c2r, this->reply);
-    initStreams(this->c2r, new_stream.c_str());
-
-    new_stream = "orchestrator-" + std::to_string(pid);
+    std::string new_stream = "orchestrator-" + std::to_string(pid);
 
     this->reply = RedisCommand(this->c2r, "DEL %s", new_stream.c_str());
     assertReply(this->c2r, this->reply);
@@ -107,32 +105,36 @@ int Chronos::acceptIncomingConn() {
 }
 
 int Chronos::handleEvents() {
-    char key[KEY_LEN], value[VALUE_LEN];
+    char key[KEY_LEN], value[VALUE_LEN], id[VALUE_LEN];
+    int pid;
 
     std::set<int> copiedProcesses = this->activeProcesses;
 
-    for (auto pid : copiedProcesses) {
-
-        if (this->logLvl > 1) {
-            logRedis((std::to_string(pid) + "-orchestrator").c_str(), READ_STREAM, NULL_VALUE);
+    while (true) {
+        if ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size())) {
+            this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", RECEIVE_STREAM);
+        } else {
+            this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %s >", RECEIVE_STREAM);
         }
-
-        this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-orchestrator >", pid);
         assertReply(this->c2r, this->reply);
 
         if (ReadNumStreams(this->reply) == 0) {
-            continue;
+            break;
         }
 
+        memset(id, 0, VALUE_LEN);
         memset(key, 0, KEY_LEN);
         memset(value, 0, VALUE_LEN);
 
-        ReadStreamMsgVal(this->reply, 0, 0, 0, key);
-        ReadStreamMsgVal(this->reply, 0, 0, 1, value);
+        ReadStreamMsgVal(this->reply, 0, 0, 1, id);
+        ReadStreamMsgVal(this->reply, 0, 0, 2, key);
+        ReadStreamMsgVal(this->reply, 0, 0, 3, value);
 
         if (strcmp(key, "request") != 0) {
             return 1;
         }
+
+        pid = std::stoi(id);
 
         if (strcmp(value, "synSleep") == 0){
             this->handleSynSleepReq(pid);
@@ -162,7 +164,7 @@ void Chronos::handleSynSleepReq(int pid) {
     // In reply we have the T time to make pass
     char value[VALUE_LEN];
 
-    if (!(ReadStreamMsgNumVal(this->reply, 0, 0) == 4)) {
+    if (!(ReadStreamMsgNumVal(this->reply, 0, 0) == 6)) {
         return;
     }
 
@@ -172,7 +174,7 @@ void Chronos::handleSynSleepReq(int pid) {
         this->unblockProcess(pid);
     }
 
-    ReadStreamMsgVal(reply, 0, 0, 3, value);
+    ReadStreamMsgVal(reply, 0, 0, 5, value);
 
     std::string strValue(value);
 

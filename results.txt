@@ -1,13 +1,8 @@
 
 ALL Logs  (meno 5 secondi fino a 3k)
 numero servers | numero clients | freq richieste clients/sec | tempo simulato | tempo richiesto | ~righe log
-      1        |      150       |        1 al giorno         |    30 giorni   |       5 sec     |    170K
-      1        |      300       |        1 al giorno         |    30 giorni   |      17 sec     |    260K
-      1        |      500       |        1 al giorno         |    30 giorni   |      23 sec     |    385K
-      1        |      800       |        1 al giorno         |    30 giorni   |      35 sec     |    577K
-      1        |     1200       |        1 al giorno         |    30 giorni   |      40 sec     |    788K
-      1        |     1500       |        1 al giorno         |    30 giorni   |      52 sec     |    980K
-      1        |     2000       |        1 al giorno         |    30 giorni   |   1min 08 sec   |    1.2ML
-      1        |     3000       |        1 al giorno         |    30 giorni   |   1min 45 sec   |    1.8ML
-      1        |     4000       |        1 al giorno         |    30 giorni   |   2min 21 sec   |    2.6ML
+      1        |     1000       |        1 al giorno         |    30 giorni   |      31 sec     |    788K
+      1        |     2000       |        1 al giorno         |    30 giorni   |      52 sec     |    1.2ML
+      1        |     3000       |        1 al giorno         |    30 giorni   |   1min 08 sec   |    1.8ML
+      1        |     3500       |        1 al giorno         |    30 giorni   |   1min 21 sec   |    2.2ML
 

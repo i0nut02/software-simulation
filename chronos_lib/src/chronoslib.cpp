@@ -43,23 +43,20 @@ int connect(char *redisIP, int redisPort, int logLvl) {
 
     _pid = std::stod(value);
 
-    std::string new_stream = valStr + "-orchestrator";
+    std::string new_stream = "orchestrator-" + valStr;
 
     initStreams(_c2r, new_stream.c_str());
-
-    new_stream = "orchestrator-" + valStr;
-
-    initStreams(_c2r, new_stream.c_str());
+    initStreams(_c2r, SEND_STREAM);
 
     return 0;
 }
 
 void alertBlocking() {
     if (_logLvl >= 0) {
-        logRedis((std::to_string(_pid) + "-orchestrator").c_str(), BLOCKING_CALL, NULL_PARAM);
+        logRedis(SEND_STREAM, BLOCKING_CALL, NULL_PARAM);
     }
 
-    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request alertBlocking", _pid);
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request alertBlocking", SEND_STREAM, _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
@@ -72,10 +69,10 @@ void synSleep(long double T) {
     std::snprintf(buffer, VALUE_LEN, "%Lf", T);
 
     if (_logLvl >= 0) {
-        logRedis((std::to_string(_pid) + "-orchestrator").c_str(), SYN_SLEEP, T);
+        logRedis(SEND_STREAM, SYN_SLEEP, T);
     }
 
-    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request synSleep time %s", _pid, buffer);
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request synSleep time %s", SEND_STREAM, _pid, buffer);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
@@ -103,7 +100,7 @@ void mySleep(long double T) {
         logRedis((std::to_string(_pid) + "-orchestrator").c_str(), MY_SLEEP, T);
     }
 
-    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request mySleep time %s", _pid, buffer);
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request mySleep time %s", SEND_STREAM, _pid, buffer);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
@@ -124,10 +121,10 @@ void mySleep(long double T) {
 
 void unblock() {
     if (_logLvl >= 0) {
-        logRedis((std::to_string(_pid) + "-orchestrator").c_str(), UNBLOCK, NULL_PARAM);
+        logRedis(SEND_STREAM, UNBLOCK, NULL_PARAM);
     }
 
-    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request alertUnblock", _pid);
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request alertUnblock", SEND_STREAM, _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
@@ -136,10 +133,10 @@ void unblock() {
 
 void disconnect() {
     if (_logLvl >= 0) {
-        logRedis((std::to_string(_pid) + "-orchestrator").c_str(), DISCONNECT, NULL_PARAM);
+        logRedis(SEND_STREAM, DISCONNECT, NULL_PARAM);
     }
 
-    _reply = RedisCommand(_c2r, "XADD %d-orchestrator * request disconnect", _pid);
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request disconnect", SEND_STREAM, _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
