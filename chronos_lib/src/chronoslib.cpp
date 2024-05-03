@@ -2,6 +2,8 @@
 
 int _pid = 0;
 int _logLvl = 0;
+long double _currentTimestamp = 0;
+
 redisContext *_c2r;
 redisReply *_reply;
 Logger _logger(LOG_FILE);
@@ -84,6 +86,11 @@ void synSleep(long double T) {
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
     assertReply(_c2r, _reply);
 
+    memset(buffer, '\0', VALUE_LEN);
+    ReadStreamMsgVal(_reply, 0, 0, 1, buffer);
+
+    _currentTimestamp = strtold(buffer, NULL);
+    
     return;
 }
 
@@ -100,12 +107,17 @@ void mySleep(long double T) {
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
 
+    if (_logLvl >= 0) {
+        logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), WAIT_SYNC, NULL_PARAM);
+    }   
+
     _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
     assertReply(_c2r, _reply);
 
-    if (_logLvl >= 0) {
-        logRedis(("orchestrator-" + std::to_string(_pid)).c_str(), WAIT_SYNC, NULL_PARAM);
-    }
+    memset(buffer, '\0', VALUE_LEN);
+    ReadStreamMsgVal(_reply, 0, 0, 1, buffer);
+
+    _currentTimestamp = strtold(buffer, NULL);
 
     return;
 }
@@ -143,4 +155,8 @@ void logRedis(const char *stream, int message ,long double value) {
 
     _logger.redisLog(stream, message, valueStr);
     return;
+}
+
+long double getSimulationTimestamp() {
+    return _currentTimestamp;
 }

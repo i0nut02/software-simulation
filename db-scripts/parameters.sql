@@ -1,3 +1,3 @@
-\set dbname chronos
-\set admin orchestrator
-\set puser process
+\set dbname log_db
+\set admin admin
+\set puser puser

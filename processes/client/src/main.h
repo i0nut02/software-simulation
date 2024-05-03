@@ -10,6 +10,7 @@
 
 #include "../../../chronos_lib/src/chronoslib.h"
 #include "../../../con2redis/src/con2redis.h"
+#include "../../../con2db/pgsql.h"
 
 #define REDIS_IP "localhost"
 #define REDIS_PORT 6379
@@ -18,7 +19,10 @@
 #define ONEDAY (60LL * 60LL * 24LL * SECOND)
 #define LAST (30LL * ONEDAY)
 
-
-
+#define POSTGRESQL_SERVER "localhost"
+#define POSTGRESQL_PORT "5432"
+#define POSTGRESQL_USER "admin"
+#define POSTGRESQL_PSW "admin"
+#define POSTGRESQL_DBNAME "log_db"
 
 #endif

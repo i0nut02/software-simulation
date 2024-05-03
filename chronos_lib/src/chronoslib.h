@@ -29,6 +29,8 @@
 
 extern int _pid;
 extern int _logLvl;
+extern long double _currentTimestamp;
+
 extern redisContext *_c2r;
 extern redisReply *_reply;
 extern Logger _logger;
@@ -46,5 +48,7 @@ void mySleep(long double T);
 void disconnect();
 
 void logRedis(const char *stream, int message ,long double value);
+
+long double getSimulationTimestamp();
 
 #endif

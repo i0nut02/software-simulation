@@ -4,7 +4,7 @@ ODIR=../obj
 BDIR=../bin
 
 CC=g++
-CFLAGS=-std=c++20 -I. -I$(IDIR) -lhiredis
+CFLAGS=-std=c++20 -I. -I$(IDIR) -lhiredis -I/usr/include/postgresql -lpq -lm
 
 DEPS = $(wildcard $(IDIR)/*.h)
 SRC = $(wildcard *.cpp)
@@ -13,10 +13,11 @@ OBJ = $(patsubst %.cpp, $(ODIR)/%.o, $(SRC))
 chronolib_OBJ=$(wildcard ../../../chronos_lib/obj/*.o)
 con2redis_OBJ=$(wildcard ../../../con2redis/obj/*.o)
 logger_OBJ=$(wildcard ../../../logger/obj/*.o)
+con2db_OBJ=$(wildcard ../../../con2db/*.o)
 
 #all:	$(ODIR)/%.o
 
-all:	create_dirs chronolib con2redis logger $(ODIR)/$(OBJ) $(BDIR)/main
+all:	create_dirs chronolib con2redis logger con2db $(ODIR)/$(OBJ) $(BDIR)/main
 
 create_dirs:
 	mkdir -p $(ODIR)
@@ -31,11 +32,14 @@ con2redis:
 logger:
 	$(MAKE) -C ../../../logger/src/
 
+con2db:
+	$(MAKE) -C ../../../con2db
+
 $(ODIR)/%.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(BDIR)/main: $(OBJ) $(DEPS)
-	$(CC) -o $@ $(OBJ) $(chronolib_OBJ) $(con2redis_OBJ) $(logger_OBJ) $(CFLAGS)
+	$(CC) -o $@ $(OBJ) $(chronolib_OBJ) $(con2redis_OBJ) $(logger_OBJ) $(con2db_OBJ) $(CFLAGS)
 
 .PHONY: clean
 

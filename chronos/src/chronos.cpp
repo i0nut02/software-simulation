@@ -209,19 +209,21 @@ void Chronos::handleTime() {
     if ((static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) && !this->syncProcessesTime.empty()) {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
+        char buffer[VALUE_LEN];
+        memset(buffer, '\0', VALUE_LEN);
+        std::snprintf(buffer, VALUE_LEN, "%Lf", this->simulationTime);
 
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
             if (this->logLvl >= 0) {
                 logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), SYNC_PROCESS, this->syncProcessesTime.top().second);
             }
 
-            this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request continue", this->syncProcessesTime.top().second);
+            this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request %s", this->syncProcessesTime.top().second, buffer);
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
             freeReplyObject(this->reply);
 
             this->activeProcesses.insert(this->syncProcessesTime.top().second);
             this->syncProcessesTime.pop();
-
         }
 
     }
