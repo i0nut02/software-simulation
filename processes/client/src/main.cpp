@@ -22,6 +22,7 @@ long double getRandomReal(long double min, long double max) {
 int main() {
     PGresult *query_res;
     char query[1000];
+    std::string curTime;
 
     if (connect() != 0) {
         return 1;
@@ -40,7 +41,9 @@ int main() {
 
         synSleep(g);
 
-        reply = RedisCommand(c2r, "XADD server * request %d", _pid);
+        curTime = std::to_string(getSimulationTimestamp());
+        
+        reply = RedisCommand(c2r, "XADD server * request %d time %s", _pid, curTime.c_str());
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
 
