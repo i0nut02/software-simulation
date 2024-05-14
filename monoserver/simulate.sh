@@ -11,8 +11,9 @@ integer1=$1
 integer2=$2
 
 # Assuming folder names are folder1 and folder2, replace them with actual folder names
-folder1="./processes/server/bin"
-folder2="./processes/client/bin"
+folder0="../chronos/bin"
+folder1="./server/bin"
+folder2="./client/bin"
 
 perform_make() {
     local folder="$1"
@@ -37,6 +38,7 @@ run() {
         done
     )
 }
+
 
 perform_make "$folder1"
 

@@ -6,7 +6,7 @@ int main() {
     Con2DB db(POSTGRESQL_SERVER, POSTGRESQL_PORT, POSTGRESQL_USER, POSTGRESQL_PSW, POSTGRESQL_DBNAME);
     char tmp_query[6000];
     std::string query = "INSERT INTO Logs VALUES ";
-    int counter = 0;
+    int counter = 1;
 
     if (connect() != 0) {
         return 1;
@@ -47,14 +47,14 @@ int main() {
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
 
-        if (counter % 100 != 0) { 
+        if (counter % 300 != 0) { 
             sprintf(tmp_query, "(%s, %s, %Lf),", id, timeReq, getSimulationTimestamp());
             query += tmp_query;
         } else {
             sprintf(tmp_query, "(%s, %s, %Lf);", id, timeReq, getSimulationTimestamp());
             query += tmp_query;
             query_res = db.ExecSQLcmd(&query[0]);
-            counter = -1;
+            counter = 1;
             query = "INSERT INTO Logs VALUES ";
         }
         counter += 1;

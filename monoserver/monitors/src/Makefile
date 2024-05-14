@@ -10,7 +10,7 @@ DEPS = $(wildcard $(IDIR)/*.h)
 SRC = $(wildcard *.cpp)
 OBJ = $(patsubst %.cpp, $(ODIR)/%.o, $(SRC))
 
-con2db_OBJ=$(wildcard ../../con2db/*.o)
+con2db_OBJ=$(wildcard ../../../con2db/*.o)
 
 #all:	$(ODIR)/%.o
 
@@ -21,7 +21,7 @@ create_dirs:
 	mkdir -p $(BDIR)
 
 con2db:
-	$(MAKE) -C ../../con2db
+	$(MAKE) -C ../../../con2db
 
 $(ODIR)/%.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
