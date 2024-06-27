@@ -17,6 +17,7 @@ Chronos::Chronos(int n, int logLvl) {
     initStreams(this->c2r, CONNECTION_REQUEST_STREAM);
     initStreams(this->c2r, CONNECTION_ACCEPT_STREAM);
     initStreams(this->c2r, RECEIVE_STREAM);
+    initStreams(this->c2r, LOGGER_STREAM);
 
     this->simulationTime = 0;
     this->disconnectedProcesses = 0;
@@ -252,13 +253,41 @@ void Chronos::handleTime() {
     }
 }
 
-void Chronos::logRedis(const char *stream, int message ,long double value) {
+void Chronos::logRedis(const char *stream, const char *message, long double value) {
     std::string valueStr = std::to_string(value);
 
     if (NULL_VALUE == value) {
         valueStr = "";
     }
 
-    logger.redisLog(stream, message, valueStr);
+    std::ostringstream oss;
+
+    // Get the current time
+    std::string timestamp = getCurrentTime();
+
+    // Log the timestamp
+    oss << timestamp << ";";
+
+    // Log the stream, message, and value
+    oss << stream << ";" << message << ";" << value;
+
+    this->reply = RedisCommand(this->c2r, "XADD %s * string %s", LOGGER_STREAM, oss.str().c_str());
+    assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
+    freeReplyObject(this->reply);
+
     return;
+}
+
+std::string Chronos::getCurrentTime() {
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::tm buf;
+    localtime_r(&in_time_t, &buf);
+
+    std::ostringstream oss;
+    oss << std::put_time(&buf, "%Y-%m-%d %H:%M:%S");
+    oss << '.' << std::setfill('0') << std::setw(3) << milliseconds.count();
+    return oss.str();
 }

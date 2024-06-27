@@ -6,11 +6,10 @@ long double _currentTimestamp = 0;
 
 redisContext *_c2r;
 redisReply *_reply;
-Logger _logger(LOG_FILE);
 
 int connect(char *redisIP, int redisPort, int logLvl) {
     char value[VALUE_LEN];
-
+    
     if (_pid != 0) {
         std::cout << "pid is different than -1, problably you use two times connect" << std::endl;
         return 1;
@@ -19,6 +18,7 @@ int connect(char *redisIP, int redisPort, int logLvl) {
     _c2r = redisConnect(redisIP, redisPort);
     initStreams(_c2r, REQUEST_CONNECTION);
     initStreams(_c2r, IDS_CONNECTION);
+    initStreams(_c2r, LOGGER_STREAM);
 
     _logLvl = logLvl;
 
@@ -143,15 +143,43 @@ void disconnect() {
     return;
 }
 
-void logRedis(const char *stream, int message ,long double value) {
+void logRedis(const char *stream, const char *message, long double value) {
     std::string valueStr = std::to_string(value);
 
     if (NULL_PARAM == value) {
         valueStr = "";
     }
 
-    _logger.redisLog(stream, message, valueStr);
+    std::ostringstream oss;
+
+    // Get the current time
+    std::string timestamp = getCurrentTime();
+
+    // Log the timestamp
+    oss << timestamp << ";";
+
+    // Log the stream, message, and value
+    oss << stream << ";" << message << ";" << value;
+
+    _reply = RedisCommand(_c2r, "XADD %s * string %s", LOGGER_STREAM, oss.str().c_str());
+    assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
+    freeReplyObject(_reply);
+
     return;
+}
+
+std::string getCurrentTime() {
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::tm buf;
+    localtime_r(&in_time_t, &buf);
+
+    std::ostringstream oss;
+    oss << std::put_time(&buf, "%Y-%m-%d %H:%M:%S");
+    oss << '.' << std::setfill('0') << std::setw(3) << milliseconds.count();
+    return oss.str();
 }
 
 long double getSimulationTimestamp() {

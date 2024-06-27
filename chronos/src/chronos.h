@@ -11,13 +11,14 @@
 #include <random>
 #include <iostream>
 #include <chrono>
+#include <sstream>
+#include <iomanip>
 
 using namespace std;
 
 /* Local libraries */
 
 #include "../../con2redis/src/con2redis.h"
-#include "../../logger/src/logger.h"
 
 /* Local constants */
 
@@ -27,6 +28,7 @@ using namespace std;
 #define CONNECTION_REQUEST_STREAM "request-connection"
 #define CONNECTION_ACCEPT_STREAM "ids-connection"
 #define RECEIVE_STREAM "orchestrator-in"
+#define LOGGER_STREAM "chronos-logger"
 
 #define MIN_BLOCK 1 // milliseconds (0 == bocking call)
 #define KEY_LEN 100
@@ -34,12 +36,11 @@ using namespace std;
 #define QUERY_LEN 100
 
 #define NULL_VALUE -1
-#define LOG_FILE "../../logfile.txt"
 
-#define READ_CONNECTIONS 0
-#define SEND_ID 1
-#define READ_STREAM 2
-#define SYNC_PROCESS 3
+#define READ_CONNECTIONS "Read incoming connection requests"
+#define SEND_ID "Send ID"
+#define READ_STREAM "Read stream"
+#define SYNC_PROCESS "Sync process"
 
 /* Types */
 
@@ -51,7 +52,6 @@ class Chronos {
     private:
         int numProcesses;
         int disconnectedProcesses;
-        Logger logger{LOG_FILE};
 
         set<int> processIDs;
 
@@ -81,7 +81,7 @@ class Chronos {
 
         void handleSynSleepReq(int pid);
 
-        void logRedis(const char *stream, int message ,long double value);
+        void logRedis(const char *stream, const char *message ,long double value);
 
     public:
         Chronos(int n, int logLvl = 3);
@@ -101,6 +101,7 @@ class Chronos {
         void handleTime();
 
         long int requests = 0;
-};
 
+        std::string getCurrentTime();
+};
 #endif

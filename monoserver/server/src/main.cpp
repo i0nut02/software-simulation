@@ -4,10 +4,11 @@
 int main() {
     PGresult *query_res;
     Con2DB db(POSTGRESQL_SERVER, POSTGRESQL_PORT, POSTGRESQL_USER, POSTGRESQL_PSW, POSTGRESQL_DBNAME);
+
     char tmp_query[6000];
     std::string query = "INSERT INTO Logs VALUES ";
-    int counter = 1;
 
+    int counter = 1;
     if (connect() != 0) {
         return 1;
     }
