@@ -6,15 +6,19 @@
 #include <ctime>
 #include <chrono>
 #include <string>
+#include <fstream>
+#include <iomanip>
+#include <cstring>
+#include <algorithm>
 
-#include "../../con2db/pgsql.h"
+#include "../../../con2redis/src/con2redis.h"
 
-#define POSTGRESQL_SERVER "localhost"
-#define POSTGRESQL_PORT "5432"
-#define POSTGRESQL_USER "admin"
-#define POSTGRESQL_PSW "admin"
-#define POSTGRESQL_DBNAME "log_db"
+#define REDIS_IP "localhost"
+#define REDIS_PORT 6379
 
+#define MONITOR_STREAM "monitor-monoserver"
+
+#define MONITOR_LEN 1000
 #define QUERY_LEN 1000
 
 int micro_sleep(long usec);

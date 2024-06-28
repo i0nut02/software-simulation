@@ -20,28 +20,87 @@ int micro_sleep(long usec) {
 }
 
 int main() {
-    PGresult *query_res;
-    Con2DB db(POSTGRESQL_SERVER, POSTGRESQL_PORT, POSTGRESQL_USER, POSTGRESQL_PSW, POSTGRESQL_DBNAME);
+    redisReply* reply;
+    redisContext* c2r;
+    char lastMsgID[64] = "0-0";
 
-    char query[QUERY_LEN];
+    char valueStart[MONITOR_LEN], valueEnd[MONITOR_LEN];
+    long double ldStart, ldEnd;
 
+    long double timeResponse, maxTimeResponse = -std::numeric_limits<long double>::infinity();
+    long double minTimeResponse = std::numeric_limits<long double>::infinity();
+    long double sumTimeResponses = 0.0;
 
-    while (true) {
-        micro_sleep(1000000);
+    int numResponses = 0;
 
-        sprintf(query, "WITH lastView AS (SELECT COALESCE(MAX(toTime), 0) AS newFrom FROM ResponseTimeMonitors),\n"
-                        "    calcTable AS (SELECT l.* FROM Logs l, lastView lv WHERE l.timeResponse > lv.newFrom)\n"
-                        "INSERT INTO ResponseTimeMonitors \n"
-                        "SELECT lv.newFrom, COALESCE(MAX(ct.timeResponse), lv.newFrom), count(ct.*), COALESCE(MIN(ct.timeResponse - ct.timeRequest), 0), COALESCE(MAX(ct.timeResponse - ct.timeRequest), 0), COALESCE(AVG(ct.timeResponse - ct.timeRequest), 0)\n"
-                        "FROM calcTable ct, lastView lv\n"
-                        "GROUP BY lv.newFrom;"
-                        );
-        query_res = db.ExecSQLcmd(query);
+    std::ofstream file("../log_monitors.txt", std::ios_base::app);
+    std::ofstream monitoring("../live_monitoring.txt", std::ios_base::app);
 
-        if (PQresultStatus(query_res) != PGRES_COMMAND_OK) {
-            std::cout << "Error during Monitors Query" << std::endl;
-            return 1;
-        }
+    if (!file) {
+        std::cerr << "Error opening log file." << std::endl;
+        return 0;
     }
+    if (!monitoring) {
+        std::cerr << "Error opening log file." << std::endl;
+        return 0;
+    }
+
+    file << "startRequest;endResponse" << std::endl;
+    monitoring << "min;max;mean" << std::endl;
+
+    c2r = redisConnect(REDIS_IP, REDIS_PORT);
+
+    initStreams(c2r, MONITOR_STREAM);
+
+    while (1) {
+        int i;
+        for (i =0; i < 100; i++) {
+            reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 10000 COUNT 1 STREAMS %s >", MONITOR_STREAM);
+            assertReply(c2r, reply);
+
+            if (ReadNumStreams(reply) == 0) {
+                std::cout << "No monitor log registered" << std::endl;
+                break;
+            }
+
+            memset(valueStart, 0, MONITOR_LEN);
+            memset(valueEnd, 0, MONITOR_LEN);
+
+            ReadStreamMsgVal(reply, 0, 0, 1, valueStart);
+            ReadStreamMsgVal(reply, 0, 0, 3, valueEnd);
+            
+            ldStart = strtold(valueStart, NULL);
+            ldEnd = strtold(valueEnd, NULL);
+
+            file << ldStart << ";"<< ldEnd << std::endl;
+
+            timeResponse = ldEnd - ldStart;
+
+            numResponses++;
+            maxTimeResponse = std::max(maxTimeResponse, timeResponse);
+            minTimeResponse = std::min(minTimeResponse, timeResponse);
+            sumTimeResponses += timeResponse;
+
+            ReadStreamNumMsgID(reply, 0, 0, lastMsgID);
+            freeReplyObject(reply);
+        }
+
+        // stop the monitor
+        if (i == 0) {
+            break;
+        }
+
+        monitoring << minTimeResponse << ";" << maxTimeResponse << ";" << sumTimeResponses / numResponses << std::endl;
+
+        void* trimReply = RedisCommand(c2r, "XTRIM %s MINID %s", MONITOR_STREAM, lastMsgID);
+        freeReplyObject(trimReply);
+    }
+
+    file.close();
+    monitoring.close();
+
+    reply = RedisCommand(c2r, "DEL %s", MONITOR_STREAM);
+    assertReply(c2r, reply);
+
     return 0;
 }

@@ -13,6 +13,8 @@ int main() {
         return 0;
     }
 
+    file << "timestamp;stream;action;value" << std::endl;
+
     c2r = redisConnect(REDIS_IP, REDIS_PORT);
 
     initStreams(c2r, LOGGER_STREAM);
