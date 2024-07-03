@@ -20,8 +20,6 @@ long double getRandomReal(long double min, long double max) {
 
 
 int main() {
-    PGresult *query_res;
-    char query[1000];
     std::string curTime;
 
     if (connect() != 0) {
