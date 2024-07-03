@@ -3,7 +3,12 @@
 #define SERVICE_H
 
 #include <string>
+
 #include "../../../con2redis/src/con2redis.h"
+#include "../../../chronos_lib/src/chronoslib.h"
+
+#define REDIS_IP "localhost"
+#define REDIS_PORT 6379
 
 class Service {
 public:
@@ -13,7 +18,7 @@ public:
 private:
     int idServer;
     std::string serviceName;
-    long double checkInterval;
+    long double TimeToResponse;
 
     void processMessage(redisReply* reply);
     void sendClientIdToOutputStream(const std::string& clientId);

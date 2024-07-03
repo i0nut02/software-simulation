@@ -4,31 +4,44 @@
 #include <vector>
 #include <string>
 #include <random>
-#include <boost/asio.hpp>
-
-#include "../../../chronos_lib/src/chronoslib.h"
-#include "../../../con2redis/src/con2redis.h"
-
-
-using boost::asio::ip::tcp;
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <iostream>
+#include <sstream>
+#include <cstring>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 class Client {
 public:
-    Client(const std::vector<int>& arr, const std::vector<std::string>& reqTypes, const std::vector<std::vector<int>>& matrix, const std::vector<std::string>& servers);
+    // Constructor with necessary parameters
+    Client(const std::vector<int>& arr, const std::vector<std::string>& reqTypes, 
+           const std::vector<std::vector<long double>>& matrix, const std::vector<std::string>& servers);
+    
+    // Main function to run the client logic
     void run();
 
 private:
-    std::vector<int> sleepTimes;
-    std::vector<std::string> requestTypes;
-    std::vector<std::vector<int>> matrix;
-    std::vector<std::string> servers;
-    int state;
-    tcp::socket* socket;
-    std::mt19937 rng;
+    std::vector<int> sleepTimes;                      // Sleep times for each state
+    std::vector<std::string> requestTypes;            // List of request types
+    std::vector<std::vector<long double>> matrix;     // State transition matrix
+    std::vector<std::string> servers;                 // List of servers in address:port format
+    int state;                                        // Current state of the client
+    int sockfd;                                       // Socket file descriptor
+    std::mt19937 rng;                                 // Random number generator
 
+    // Connect to a server
     void connectToServer();
+    
+    // Disconnect from the server
     void disconnectFromServer();
+    
+    // Send a request to the server
     void sendRequest();
+    
+    // Determine the next state based on transition probabilities
     int nextState();
 };
 

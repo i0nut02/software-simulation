@@ -4,60 +4,38 @@
 #include <chrono>
 #include <cstring>
 
-Service::Service(int idServer, const std::string& serviceName, long double checkInterval)
-    : idServer(idServer), serviceName(serviceName), checkInterval(checkInterval) {}
+Service::Service(int idServer, const std::string& serviceName, long double TimeToResponse)
+    : idServer(idServer), serviceName(serviceName), TimeToResponse(TimeToResponse) {}
 
 void Service::run() {
-    redisContext* context = redisConnect("127.0.0.1", 6379);
-    if (context == nullptr || context->err) {
-        std::cerr << "Redis connection error: " << (context ? context->errstr : "Cannot allocate Redis context") << std::endl;
-        return;
-    }
+    redisContext* c2r = redisConnect(REDIS_IP, REDIS_PORT);
+    redisReply* reply;
 
-    std::string streamName = std::to_string(idServer) + "-" + serviceName;
+    std::string streamName = std::to_string(idServer) + "-in";
+    initStreams(c2r, streamName.c_str());
+
+    streamName = serviceName + "-" + std::to_string(idServer);
+    initStreams(c2r, streamName.c_str());
+
     std::string lastId = "0";
+    char clientId[INT64_WIDTH];
 
     while (true) {
-        redisReply* reply = (redisReply*)redisCommand(context, "XREAD COUNT 1 STREAMS %s %s", streamName.c_str(), lastId.c_str());
+        reply = RedisCommand(c2r, "XREADGROUP diameter service BLOCK 10000 COUNT 1 STREAMS %s-%d", serviceName.c_str(), idServer);
 
-        if (reply && reply->type == REDIS_REPLY_ARRAY && reply->elements > 0) {
-            char streamId[64];
-            ReadStreamNumMsgID(reply, 0, 0, streamId);
-            lastId = streamId;
-
-            processMessage(reply);
+        if (ReadNumStreams(reply) == 0) {
+            // XTRIM
+            continue;
         }
 
-        if (reply) {
-            freeReplyObject(reply);
-        }
-    }
+        memset(clientId, 0, INT64_WIDTH);
+        ReadStreamMsgVal(reply, 0, 0, 1, clientId);
+        freeReplyObject(reply);
 
-    redisFree(context);
-}
+        synSleep(TimeToResponse);
 
-void Service::processMessage(redisReply* reply) {
-    char clientId[256];
-    ReadStreamMsgVal(reply, 0, 0, 1, clientId);
-    std::cout << "Processing client ID: " << clientId << std::endl;
-
-    sendClientIdToOutputStream(clientId);
-}
-
-void Service::sendClientIdToOutputStream(const std::string& clientId) {
-    redisContext* context = redisConnect("127.0.0.1", 6379);
-    if (context == nullptr || context->err) {
-        std::cerr << "Redis connection error: " << (context ? context->errstr : "Cannot allocate Redis context") << std::endl;
-        return;
-    }
-
-    std::string outputStream = std::to_string(idServer) + "-out";
-    std::string command = "XADD " + outputStream + " * clientId " + clientId;
-    redisReply* reply = (redisReply*)redisCommand(context, command.c_str());
-
-    if (reply) {
+        reply = RedisCommand(c2r, "XADD %d-in * clientId %s", idServer, clientId);
+        assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
     }
-
-    redisFree(context);
 }
