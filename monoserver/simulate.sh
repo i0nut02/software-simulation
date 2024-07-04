@@ -24,7 +24,7 @@ perform_make() {
     )
 }
 
-# Function to perform make n times
+# Function to perform ./main n times
 run() {
     local folder="$1"
     local times="$2"

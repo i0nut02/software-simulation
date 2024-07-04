@@ -11,11 +11,11 @@ int main(int argc, char* argv[]) {
         int port = std::stoi(argv[2]);
         std::cout <<  idServer << "  " << port << std::endl;
         std::string ipAddress = "127.0.0.1";  // Replace with your actual IP address
-        std::vector<std::string> services = {"viewAvailableShippings", "takeInChargeShipping", "changeStatusDelivery"};  // Replace with your actual message list
+        std::vector<std::string> services = {"addProduct", "viewStatistics"};  // Replace with your actual message list
 
         Server server(ipAddress, port, services, 1, 2, 3, idServer);
-
         server.run();
+
     } catch (std::exception& e) {
         std::cerr << "Exception: " << e.what() << std::endl;
         return 1;
