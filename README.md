@@ -1,8 +1,9 @@
 # software-simulation
 
 ## TODO:
-- [] make the message an integer and save the relationship integer - message
-- make client and server for simulation
+- make different servers per client in automation
+- remove peint messages
+- finish sending from server to service
 
 ## tests
 
@@ -15,3 +16,4 @@
 
 - 100 clients and 1 server
     - each 2 and half seconds a client make a request to the server that take 1 millisecond to respond 15 minutes simulation [11 minutes]
+
