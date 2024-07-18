@@ -1,19 +1,29 @@
 #include "../../classes/src/server.h"
+#include <iostream>
+#include <string>
+#include <exception>
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cerr << "Usage: ./main idServer port" << std::endl;
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " idServer" << std::endl;
         return 1;
     }
 
     try {
         int idServer = std::stoi(argv[1]);
-        int port = std::stoi(argv[2]);
-        std::cout <<  idServer << "  " << port << std::endl;
-        std::string ipAddress = "127.0.0.1";  // Replace with your actual IP address
-        std::vector<std::string> services = {"searchProduct", "addToCart", "createOrder", "viewOrder"};  // Replace with your actual message list
+        std::string redisIP = "127.0.0.1";  // Replace with your actual Redis IP address
+        int redisPort = 6379;  // Replace with your actual Redis port
 
-        Server server(ipAddress, port, services, 1, 2, 3, idServer);
+        // Define the service mapping
+        std::unordered_map<std::string, std::string> serviceMap = {
+            {"searchProduct", "searchProduct"},
+            {"addToCart", "addToCart"},
+            {"createOrder", "createOrder"},
+            {"viewOrder", "viewOrder"}
+        };
+
+        // Create the server instance
+        Server server(redisIP, redisPort, idServer, serviceMap);
         server.run();
 
     } catch (std::exception& e) {
@@ -23,4 +33,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-

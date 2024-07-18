@@ -5,6 +5,7 @@
 #include <string>     // For std::string
 #include <unordered_map>
 #include <functional>
+#include <unistd.h>
 
 std::unordered_map<std::string, std::vector<std::string>> entityServices = {
     {"courier", {"viewAvailableShippings", "takeInChargeShipping", "changeStatusDelivery"}},
@@ -12,10 +13,22 @@ std::unordered_map<std::string, std::vector<std::string>> entityServices = {
     {"supplier", {"addProduct", "viewStatistics"}}
 };
 
+std::unordered_map<std::string, std::vector<std::string>> requestsServices = {
+    {"viewAvailableShippings", {"viewAvailableShippings"}}, 
+    {"takeInChargeShipping", {"takeInChargeShipping"}}, 
+    {"changeStatusDelivery", {"changeStatusDelivery"}}, 
+    {"searchProduct", {"searchProduct"}}, 
+    {"addToCart", {"addToCart"}}, 
+    {"createOrder", {"createOrder"}}, 
+    {"viewOrder", {"viewOrder"}},
+    {"addProduct", {"addProduct"}}, 
+    {"viewStatistics", {"viewStatistics"}}
+};
+
 std::unordered_map<std::string, int> serverPort = {
-    {"courier", 2929},
-    {"customer", 4949},
-    {"supplier", 3939}
+    {"courier", 2000},
+    {"customer", 2100},
+    {"supplier", 2200}
 };
 
 std::unordered_map<std::string, long double> serviceTime = {
@@ -46,8 +59,8 @@ std::string extractEntity(const std::string& path) {
 // Function to run the make command in the specified directory
 void runMake(const std::string& directory) {
     std::ostringstream command;
-    command << "make -C " << directory;
-    std::cout << "Executing: " << command.str() << std::endl;
+    command << "make -C " << directory << " clean; " << "make -C " << directory;
+
     int result = system(command.str().c_str());
 
     if (result != 0) {
@@ -57,11 +70,11 @@ void runMake(const std::string& directory) {
 }
 
 // Function to run a binary multiple times using system()
-void runBinary(const std::string& binaryPath, int count) {
+void runBinary(const std::string& binaryPath, int count, int numServers) {
     for (int i = 0; i < count; ++i) {
         std::ostringstream command;
-        command << binaryPath << " &"; // Build the command to run the binary in the background
-        std::cout << "Running: " << command.str() << std::endl;
+        command << binaryPath << " " << numServers << " &"; // Build the command to run the binary in the background
+
         int result = system(command.str().c_str()); // Execute the command
 
         if (result != 0) {
@@ -76,8 +89,8 @@ void runBinaryServer(const std::string& binaryPath, int count) {
 
     for (int i = 0; i < count; ++i) {
         std::ostringstream command;
-        command << binaryPath << " " << i << " " << serverPort[entity] + i << " &"; // Build the command to run the binary in the background
-        std::cout << "Running: " << command.str() << std::endl;
+        command << binaryPath << " " << serverPort[entity] + i << " &"; // Build the command to run the binary in the background
+
         int result = system(command.str().c_str()); // Execute the command
 
         if (result != 0) {
@@ -85,8 +98,19 @@ void runBinaryServer(const std::string& binaryPath, int count) {
         }
 
         for (std::string service : entityServices[entity]) {
+            std::string requests = "";
+            std::string times = "";
+
+            for (std::string request : requestsServices[service]) {
+                requests += request + ",";
+                times += std::to_string(serviceTime[request]) + ",";
+            }
+
+            requests.pop_back(); // remove the last comma
+            times.pop_back();
+            
             std::ostringstream command2;
-            command2 << "../../service/bin" << " " << service << " " << i << " " << service << " " << serviceTime[service] <<  " &";
+            command2 << "../../service/bin/main" << " " << serverPort[entity] + i << " " << service << " " << requests << " " << times << " &";
             result = system(command2.str().c_str());
             if (result != 0) {
                 std::cerr << "Error: Failed to execute " << binaryPath << std::endl;
@@ -148,8 +172,10 @@ int main(int argc, char* argv[]) {
         runBinaryServer(binaries[i], counts[i]);
     }
 
+    sleep(1);
+
     for (size_t i = 0; i < binaries.size(); i+=2) {
-        runBinary(binaries[i], counts[i]);
+        runBinary(binaries[i], counts[i], counts[i+1]);
     }
 
     std::cout << "All binaries started." << std::endl;
