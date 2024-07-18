@@ -1,19 +1,39 @@
-// Client.cpp
 #include "client.h"
+#include <iostream>
+#include <unistd.h>
+#include <cstring>
+#include <cstdarg>
 
 // Constructor
-Client::Client(const std::vector<int>& arr, const std::vector<std::string>& reqTypes, 
-               const std::vector<std::vector<long double>>& matrix, const std::vector<std::string>& servers)
-    : sleepTimes(arr), requestTypes(reqTypes), matrix(matrix), servers(servers), state(0), sockfd(-1) {
+Client::Client(const std::vector<long double>& arr, const std::vector<std::string>& reqTypes,
+               const std::vector<std::vector<long double>>& matrix, const std::vector<int>& servers,
+               const std::string address, int port)
+    : sleepTimes(arr), requestTypes(reqTypes), matrix(matrix), servers(servers), state(0), c2r(nullptr), clientId(-1) {
     std::random_device rd;
     rng.seed(rd());
+
+    c2r = redisConnect(address.c_str(), port);
+    if (c2r == NULL || c2r->err) {
+        if (c2r) {
+            std::cerr << "Error: " << c2r->errstr << std::endl;
+            redisFree(c2r);
+        } else {
+            std::cerr << "Can't allocate redis context" << std::endl;
+        }
+        c2r = nullptr;
+    }
+}
+
+// Destructor
+Client::~Client() {
+    if (c2r != nullptr) {
+        redisFree(c2r);
+    }
 }
 
 // Main run loop
 void Client::run() {
-    std::cout << "Starting client loop" << std::endl;
     while (true) {
-        std::cout << state << std::endl;
         if (state == 0) {
             connectToServer();
         } else if (state == requestTypes.size() + 1) {
@@ -43,89 +63,66 @@ int Client::nextState() {
 
 // Connect to a server
 void Client::connectToServer() {
+    if (c2r == nullptr) {
+        std::cerr << "Not connected to any server" << std::endl;
+        return;
+    }
     std::uniform_int_distribution<int> dist(0, servers.size() - 1);
-    std::string server = servers[dist(rng)];
-    std::cout << "Connecting to server: " << server << std::endl;
+    server = servers[dist(rng)];
 
-    // Parse server string to extract address and port
-    std::string address;
-    std::string port;
-    size_t colonPos = server.find(':');
-    if (colonPos != std::string::npos) {
-        address = server.substr(0, colonPos);
-        port = server.substr(colonPos + 1);
-    } else {
-        std::cerr << "Invalid server format. Use address:port" << std::endl;
-        return;
-    }
+    std::string streamName = std::to_string(server) + "-clients";
+    initStreams(c2r, streamName.c_str());
 
-    struct addrinfo hints, *res;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC; // IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM; // TCP
+    streamName = std::to_string(server)  + "-connections";
+    initStreams(c2r, streamName.c_str());
 
-    if (getaddrinfo(address.c_str(), port.c_str(), &hints, &res) != 0) {
-        perror("getaddrinfo failed");
-        return;
-    }
+    redisReply* reply = executeCommand("XADD %d-clients * request connection", server);
+    freeReplyObject(reply);
 
-    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (sockfd < 0) {
-        perror("Socket creation failed");
-        freeaddrinfo(res);
-        return;
-    }
+    reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 0 COUNT 1 STREAMS %d-connections >", server);
+    assertReply(c2r, reply);
 
-    if (connect(sockfd, res->ai_addr, res->ai_addrlen) < 0) {
-        perror("Connection failed");
-        close(sockfd);
-        sockfd = -1;
-    } else {
-        std::cout << "Connected to " << server << std::endl;
-    }
+    char clientIdChar[INT64_WIDTH];
+    memset(clientIdChar, 0, INT64_WIDTH);
 
-    freeaddrinfo(res);
+    ReadStreamMsgVal(reply, 0, 0, 1, clientIdChar);
+
+    clientId = atoi(clientIdChar);
+
+    streamName = std::to_string(server)  + "-" + std::to_string(clientId);
+    initStreams(c2r, streamName.c_str());
+    return;
 }
 
 // Disconnect from the server
 void Client::disconnectFromServer() {
-    if (sockfd != -1) {
-        std::cout << "Disconnecting from server" << std::endl;
-        close(sockfd);
-        sockfd = -1;
+    if (c2r != nullptr) {
+        executeCommand("XADD %d-clients * request disconnection clientId %d", server, clientId);
     }
 }
 
 // Send a request to the server
 void Client::sendRequest() {
-    if (sockfd == -1) {
+    if (c2r == nullptr) {
         std::cerr << "Not connected to any server" << std::endl;
         return;
     }
 
-    std::string request = "GET " + requestTypes[state-1] + " HTTP/1.1\r\n";
-    request += "Host: localhost\r\n";
-    request += "Connection: close\r\n";
-    request += "\r\n";
+    std::string requestType = requestTypes[state - 1];
+    executeCommand("XADD %d-clients * request %s clientId %d", server, requestType.c_str(), clientId);
 
-    std::cout << "Sending request: " << requestTypes[state-1] << std::endl;
+    executeCommand("XREADGROUP GROUP diameter client BLOCK 0 COUNT 1 STREAMS %d-%d >", server, clientId);
+}
 
-    ssize_t bytesSent = send(sockfd, request.c_str(), request.length(), 0);
-    if (bytesSent < 0) {
-        perror("Send failed");
-        disconnectFromServer();
-        return;
+redisReply* Client::executeCommand(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    redisReply* reply = (redisReply*)redisvCommand(c2r, format, args);
+    va_end(args);
+    if (reply == NULL || reply->type == REDIS_REPLY_ERROR) {
+        std::cerr << "Error executing command: " << (reply ? reply->str : "NULL reply") << std::endl;
+        if (reply) freeReplyObject(reply);
+        return nullptr;
     }
-
-    char buffer[512];
-    memset(buffer, 0, sizeof(buffer));
-
-    ssize_t bytesRead = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
-    if (bytesRead < 0) {
-        std::cout << "Cazzi: " << buffer << std::endl;
-        perror("Receive failed");
-        disconnectFromServer();
-    } else {
-        std::cout << "Response: " << buffer << std::endl;
-    }
+    return reply;
 }

@@ -1,55 +1,37 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include <string>
-#include <vector>
-#include <unordered_set>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstdlib>
 #include <iostream>
-#include <sstream>
-#include <cstring>
-#include <fcntl.h>
-#include <sys/select.h>
+#include <string>
+#include <unordered_map>
+#include <hiredis/hiredis.h>
+#include "../../../con2redis/src/con2redis.h"  // Include the con2redis header
 
-#include "../../../chronos_lib/src/chronoslib.h"
-#include "../../../con2redis/src/con2redis.h"
-
-#define REDIS_IP "localhost"
-#define REDIS_PORT 6379
+#define REQUEST_TYPE_LEN 100
 
 class Server {
 public:
-    Server(const std::string& ipAddress, int port, const std::vector<std::string>& msgList,
-           long double acceptConnTime, long double readTimeResponse, long double readReqTime, int idServer);
-
+    Server(const std::string& redisIP, int redisPort, int idServer, const std::unordered_map<std::string, std::string>& hashtable);
     ~Server();
 
     void run();
 
 private:
-    void acceptConnections();
-    bool readRequest(int clientFd); // Returns false if the client should be disconnected
-    void handleRedisStream();
-    void sendToClient(int clientId, const std::string& message);
-    std::string parseEndpoint(const std::string& request);
+    redisContext* c2r;
 
-    int serverFd; // Server socket file descriptor
-    std::unordered_set<int> clients;
-
-    redisContext *c2r;
-    redisReply *reply;
-    
-    std::string ipAddress;
-    int port;
-    std::vector<std::string> services;
-    long double acceptConnTime;
-    long double readTimeResponse;
-    long double readReqTime;
     int idServer;
+    std::string streamName;
+    std::unordered_map<std::string, std::string> serviceMap;
+    int clientIdCounter;
+
+    void processRequest(redisReply* reply);
+    int generateClientId();
+    void handleConnection(int clientId);
+    void handleDisconnection(int clientId);
+    void forwardMessage(const std::string& requestType, int clientId);
+
+    // Utility method to execute a Redis command and handle errors
+    redisReply* executeCommand(const char* format, ...);
 };
 
-#endif // SERVER_H
+#endif

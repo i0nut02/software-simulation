@@ -1,200 +1,128 @@
-// Server.cpp
 #include "server.h"
 
-Server::Server(const std::string& ipAddress, int port, const std::vector<std::string>& services,
-               long double acceptConnTime, long double readTimeResponse, long double readReqTime, int idServer)
-    : ipAddress(ipAddress), port(port), services(services),
-      acceptConnTime(acceptConnTime), readTimeResponse(readTimeResponse), readReqTime(readReqTime), idServer(idServer) {
+#include <ctime>
+#include <cstdarg>
+#include <cstring>
+#include <iostream>
 
-    // Initialize socket
-    serverFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverFd < 0) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
-    }
+Server::Server(const std::string& redisIP, int redisPort, int idServer, const std::unordered_map<std::string, std::string>& hashtable)
+    : idServer(idServer), serviceMap(hashtable) {
 
-    // Set server socket to non-blocking
-    if (fcntl(serverFd, F_SETFL, fcntl(serverFd, F_GETFL, 0) | O_NONBLOCK) < 0) {
-        perror("Failed to set non-blocking mode");
-        close(serverFd);
-        exit(EXIT_FAILURE);
-    }
-
-    // Set server address
-    sockaddr_in serverAddr;
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = inet_addr(ipAddress.c_str());
-    serverAddr.sin_port = htons(port);
-
-    // Bind the socket
-    if (bind(serverFd, (sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        perror("Bind failed");
-        close(serverFd);
-        exit(EXIT_FAILURE);
-    }
-
-    // Listen for connections
-    if (listen(serverFd, SOMAXCONN) < 0) {
-        perror("Listen failed");
-        close(serverFd);
-        exit(EXIT_FAILURE);
-    }
-
-    c2r = redisConnect(REDIS_IP, REDIS_PORT);
-
-    std::string stream;
-    for (const auto &service : services) {
-        stream = service + "-" + std::to_string(idServer);
-        initStreams(c2r, stream.c_str());
-    }
-
-    stream = std::to_string(idServer) + "-in";
-    initStreams(c2r, stream.c_str());
-}
-
-void Server::run() {
-    std::cout << "starting" << std::endl;
-
-    fd_set readFds;
-    int maxFd = serverFd;
-
-    while (true) {
-        FD_ZERO(&readFds);
-
-        FD_SET(serverFd, &readFds);
-
-        for (int clientFd : clients) {
-            FD_SET(clientFd, &readFds);
-            maxFd = std::max(maxFd, clientFd);
+    c2r = redisConnect(redisIP.c_str(), redisPort);
+    if (c2r == NULL || c2r->err) {
+        if (c2r) {
+            std::cerr << "Error: " << c2r->errstr << std::endl;
+            redisFree(c2r);
+        } else {
+            std::cerr << "Can't allocate redis context" << std::endl;
         }
-
-        timeval timeout = {0, 500}; // Set select timeout to 1 second
-        int activity = select(maxFd + 1, &readFds, nullptr, NULL, &timeout);
-
-        if (activity < 0) {
-            perror("Select error");
-            break;
-        }
-
-        if (FD_ISSET(serverFd, &readFds)) {
-            acceptConnections();
-        }
-
-        for (auto it = clients.begin(); it != clients.end();) {
-            int clientFd = *it;
-            if (FD_ISSET(clientFd, &readFds)) {
-                if (!readRequest(clientFd)) {
-                    it = clients.erase(it); // Remove disconnected client
-                } else {
-                    ++it;
-                }
-            } else {
-                ++it;
-            }
-        }
-
-        handleRedisStream();
+        exit(1);
     }
-}
-
-void Server::acceptConnections() {
-    int clientFd;
-    do {
-        clientFd = accept(serverFd, NULL, NULL);
-        
-        if (clientFd < 0) {
-
-            if (errno != EWOULDBLOCK) {
-                std::cout << "\nClient accept failed" << std::endl;
-                perror("Accept error");
-                return;
-            }
-            break;
-        }
-
-        // Set the client socket to non-blocking
-        fcntl(clientFd, F_SETFL, O_NONBLOCK);
-
-        clients.insert(clientFd);
-        std::cout << "Accepted connection from client: " << clientFd << std::endl;
-    } while (clientFd != -1);
-}
-
-bool Server::readRequest(int clientFd) {
-    char data[512];
-    memset(data, 0, sizeof(data));
-
-    ssize_t bytesRead = recv(clientFd, data, sizeof(data), 0);
-    if (bytesRead < 0) {
-        perror("Read error");
-        return false;
-    } else if (bytesRead == 0) {
-        std::cout << "Client " << clientFd << " disconnected" << std::endl;
-        close(clientFd);
-        return false;
-    }
-
-    std::string request(data, bytesRead);
-    std::cout << "Received request from client " << clientFd << ": " << request << std::endl;
-
-    std::string endpoint = parseEndpoint(request);
-    std::cout << "Requested endpoint: " << endpoint << std::endl;
     
-    ssize_t bytesSent = send(clientFd, data, bytesRead, 0);
-    if (bytesSent < 0) {
-        perror("Send error");
-        return false;
-    }
+    redisReply* reply = RedisCommand(c2r, "DEL %d-connections", idServer);
+    assertReply(c2r, reply);
 
-    return true;
-}
+    std::string streamName = std::to_string(idServer) + "-connections";
 
-std::string Server::parseEndpoint(const std::string& request) {
-    std::istringstream requestStream(request);
-    std::string requestLine;
-    std::getline(requestStream, requestLine);
+    initStreams(c2r, streamName.c_str());
 
-    std::istringstream lineStream(requestLine);
-    std::string method, endpoint, version;
-    lineStream >> method >> endpoint >> version;
+    reply = RedisCommand(c2r, "DEL %d-clients", idServer);
+    assertReply(c2r, reply);
 
-    return endpoint;
-}
+    streamName = std::to_string(idServer) + "-clients";
 
-void Server::handleRedisStream() {
-    while (true) {
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 100 COUNT 1 STREAMS %d-in >", idServer);
-
-        assertReply(c2r, reply);
-
-        if (ReadNumStreams(reply) == 0) {
-            break;
-        }
-        
-        char clientId[INT64_WIDTH];
-        memset(clientId, 0, INT64_WIDTH);
-
-        ReadStreamMsgVal(reply, 0, 0, 1, clientId);
-        freeReplyObject(reply);
-
-        sendToClient(std::atoi(clientId), "ok");
-    }
-}
-
-void Server::sendToClient(int clientId, const std::string& message) {
-    try {
-        if (clients.find(clientId) != clients.end()) {
-            send(clientId, message.c_str(), message.length(), 0);
-        }
-    } catch (std::exception& e) {
-        std::cerr << "Send error for client " << clientId << ": " << e.what() << std::endl;
-    }
+    initStreams(c2r, streamName.c_str());
 }
 
 Server::~Server() {
-    close(serverFd);
-    for (int clientFd : clients) {
-        close(clientFd);
+    if (c2r) {
+        redisFree(c2r);
+    }
+}
+
+redisReply* Server::executeCommand(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    redisReply* reply = RedisCommand(c2r, format, args);
+    va_end(args);
+    if (reply == NULL || reply->type == REDIS_REPLY_ERROR) {
+        std::cerr << "Error executing command: " << (reply ? reply->str : "NULL reply") << std::endl;
+        if (reply) freeReplyObject(reply);
+        return nullptr;
+    }
+    return reply;
+}
+
+int Server::generateClientId() {
+    return clientIdCounter++;
+}
+
+void Server::handleConnection(int clientId) {
+    redisReply* reply = RedisCommand(c2r, "XADD %d-connections * clientId %d", idServer, clientId);
+    assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+    freeReplyObject(reply);
+    
+    std::string clientStream = std::to_string(idServer) + "-" + std::to_string(clientId);
+    initStreams(c2r, clientStream.c_str());
+}
+
+void Server::handleDisconnection(int clientId) {
+    // Handle disconnection logic here
+    executeCommand("DEL %d-%d", idServer, clientId);
+    return;
+}
+
+void Server::forwardMessage(const std::string& requestType, int clientId) {
+    if (serviceMap.count(requestType) > 0) {
+        redisReply* reply = RedisCommand(c2r, "XADD %s-%d * clientId %d request %s", serviceMap[requestType].c_str(), idServer, clientId, requestType.c_str());
+        assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+        freeReplyObject(reply);
+    }
+    return;
+}
+
+void Server::processRequest(redisReply* reply) {
+    char clientIdChar[INT64_WIDTH];
+    char requestType[REQUEST_TYPE_LEN];
+
+    memset(clientIdChar, 0, INT64_WIDTH);
+    memset(requestType, 0, REQUEST_TYPE_LEN);
+
+    ReadStreamMsgVal(reply, 0, 0, 1, requestType);
+
+    if (strcmp(requestType, "connection") == 0) {
+        freeReplyObject(reply);
+        handleConnection(generateClientId());
+        return;
+    }
+
+    ReadStreamMsgVal(reply, 0, 0, 3, clientIdChar);
+
+    if (strcmp(requestType, "disconnection") == 0) {
+        handleDisconnection(atoi(clientIdChar));
+
+    } else if (strcmp(requestType, "response") == 0){
+        reply = RedisCommand(c2r, "XADD %d-%s * clientId response", idServer, clientIdChar);
+        assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+        freeReplyObject(reply);
+
+    } else {
+        forwardMessage(std::string(requestType), atoi(clientIdChar));
+    }
+}
+
+void Server::run() {
+    while (true) {
+        redisReply* reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %d-clients >", idServer);
+        if (!reply || reply->elements == 0) {
+            std::cout << "nooo" << std::endl;
+            if (reply) freeReplyObject(reply);
+        } else {
+            if (ReadNumStreams(reply) != 0) {
+                processRequest(reply);
+            }
+        }
+
+        // check responces from services
     }
 }

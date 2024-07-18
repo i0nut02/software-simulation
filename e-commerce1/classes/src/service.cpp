@@ -4,38 +4,45 @@
 #include <chrono>
 #include <cstring>
 
-Service::Service(int idServer, const std::string& serviceName, long double TimeToResponse)
-    : idServer(idServer), serviceName(serviceName), TimeToResponse(TimeToResponse) {}
-
 void Service::run() {
     redisContext* c2r = redisConnect(REDIS_IP, REDIS_PORT);
     redisReply* reply;
 
-    std::string streamName = std::to_string(idServer) + "-in";
+    std::string streamName = serviceName  + "-" + std::to_string(idServer);
     initStreams(c2r, streamName.c_str());
 
-    streamName = serviceName + "-" + std::to_string(idServer);
+    streamName = std::to_string(idServer) + "-clients";
     initStreams(c2r, streamName.c_str());
 
     std::string lastId = "0";
     char clientId[INT64_WIDTH];
+    char typeRequest[REQ_LEN];
 
     while (true) {
-        reply = RedisCommand(c2r, "XREADGROUP diameter service BLOCK 10000 COUNT 1 STREAMS %s-%d", serviceName.c_str(), idServer);
-
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter service BLOCK 20000 COUNT 1 STREAMS %s-%d >", serviceName.c_str(), idServer);
+        
         if (ReadNumStreams(reply) == 0) {
             // XTRIM
             continue;
         }
 
         memset(clientId, 0, INT64_WIDTH);
+        memset(typeRequest, 0, REQ_LEN);
+
         ReadStreamMsgVal(reply, 0, 0, 1, clientId);
+        ReadStreamMsgVal(reply, 0, 0, 3, typeRequest);
+
         freeReplyObject(reply);
 
-        synSleep(TimeToResponse);
+        for (size_t k = 0; k < services.size(); ++k) {
+            if (services[k] == typeRequest) {
+                //synSleep(times[k]);
+                std::cout << services[k] << " " << typeRequest << std::endl;
 
-        reply = RedisCommand(c2r, "XADD %d-in * clientId %s", idServer, clientId);
-        assertReplyType(c2r, reply, REDIS_REPLY_STRING);
-        freeReplyObject(reply);
+                reply = RedisCommand(c2r, "XADD %d-clients * type response clientId %s", idServer, clientId);
+                freeReplyObject(reply);
+                break;
+            }
+        }
     }
 }
