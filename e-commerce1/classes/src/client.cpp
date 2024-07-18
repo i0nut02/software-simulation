@@ -99,6 +99,8 @@ void Client::disconnectFromServer() {
     if (c2r != nullptr) {
         executeCommand("XADD %d-clients * request disconnection clientId %d", server, clientId);
     }
+    redisReply* reply = RedisCommand(c2r, "DEL %d-%d", server, clientId);
+    assertReply(c2r, reply);
 }
 
 // Send a request to the server

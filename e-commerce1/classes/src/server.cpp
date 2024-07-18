@@ -112,17 +112,27 @@ void Server::processRequest(redisReply* reply) {
 }
 
 void Server::run() {
+    int requestCount = 0; // Counter for processed requests
+    char lastIdClients[128];
+
     while (true) {
         redisReply* reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %d-clients >", idServer);
+        
         if (!reply || reply->elements == 0) {
-            std::cout << "nooo" << std::endl;
             if (reply) freeReplyObject(reply);
         } else {
             if (ReadNumStreams(reply) != 0) {
+                memset(lastIdClients, 0, 128);
+                ReadStreamNumMsgID(reply, 0, 0, lastIdClients);
+
                 processRequest(reply);
+                requestCount++;
             }
         }
 
-        // check responces from services
+        if (requestCount >= 1000) {
+            reply = RedisCommand(c2r, "XTRIM %d-clients MINID %s", idServer, lastIdClients);
+            requestCount = 0;
+        }
     }
 }
