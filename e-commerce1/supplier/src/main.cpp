@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
     int numServers = std::stoi(argv[1]);
 
-    std::vector<long double> sleepTimes = {2 * ONE_DAY, 10 * ONE_MINUTE, ONE_HOUR, ONE_SECOND};
+    std::vector<long double> sleepTimes = {2 * ONE_DAY, 10 * ONE_MINUTE, ONE_HOUR, ONE_SECOND, ONE_HOUR};
     std::vector<std::string> requestTypes = {"addProduct", "viewStatistics"};
     std::vector<std::vector<long double>> matrix = {
         {0, 0.3, 0.7, 0}, 

@@ -5,6 +5,7 @@
 #include <string>     // For std::string
 #include <unordered_map>
 #include <functional>
+#include <numeric>
 #include <unistd.h>
 
 std::unordered_map<std::string, std::vector<std::string>> entityServices = {
@@ -161,11 +162,38 @@ int main(int argc, char* argv[]) {
         numSuppliersServers
     };
 
+    int sum = std::accumulate(counts.begin(), counts.end(), 0);
+
+    for (const auto& pair : entityServices) {
+        sum += pair.second.size();
+    }
+
     // Run make for each source directory
     for (const std::string& dir : sourceDirs) {
         runMake(dir);
     }
     runMake("../../service/src");
+    runMake("../../../chronos/src");
+    runMake("../../../chronos_lib/src");
+    runMake("../../../logger/src");
+
+    std::ostringstream command2;
+    command2 << "../../../logger/bin/main " << " &"; // Build the command to run the binary in the background
+
+    int result = system(command2.str().c_str()); // Execute the command
+
+    if (result != 0) {
+        std::cerr << "Error: Failed to execute ../../../chronos/bin/" << std::endl;
+    }
+
+    std::ostringstream command;
+    command << "../../../chronos/bin/main " << sum << " &"; // Build the command to run the binary in the background
+
+    result = system(command.str().c_str()); // Execute the command
+
+    if (result != 0) {
+        std::cerr << "Error: Failed to execute ../../../chronos/bin/" << std::endl;
+    }
 
     // Run each binary the specified number of times
     for (size_t i = 1; i < binaries.size(); i+=2) {

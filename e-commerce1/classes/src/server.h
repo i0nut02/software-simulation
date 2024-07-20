@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <hiredis/hiredis.h>
 #include "../../../con2redis/src/con2redis.h"  // Include the con2redis header
+#include "../../../chronos_lib/src/chronoslib.h"
 
 #define REQUEST_TYPE_LEN 100
 

@@ -48,7 +48,6 @@ int main() {
         freeReplyObject(reply);
 
     }
-    
     disconnect();
     
     reply = RedisCommand(c2r, "DEL server");

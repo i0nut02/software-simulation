@@ -22,6 +22,7 @@ Client::Client(const std::vector<long double>& arr, const std::vector<std::strin
         }
         c2r = nullptr;
     }
+    connect();
 }
 
 // Destructor
@@ -33,7 +34,9 @@ Client::~Client() {
 
 // Main run loop
 void Client::run() {
-    while (true) {
+    while (_currentTimestamp < 30*24*60*60) {
+        mySleep(sleepTimes[state]);
+
         if (state == 0) {
             connectToServer();
         } else if (state == requestTypes.size() + 1) {
@@ -43,6 +46,7 @@ void Client::run() {
         }
         state = nextState();
     }
+    disconnect();
 }
 
 // Determine the next state
@@ -79,8 +83,15 @@ void Client::connectToServer() {
     redisReply* reply = executeCommand("XADD %d-clients * request connection", server);
     freeReplyObject(reply);
 
-    reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 0 COUNT 1 STREAMS %d-connections >", server);
+    alertBlocking();
+    reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-connections >", server);
     assertReply(c2r, reply);
+    unblock();
+
+    if (ReadNumStreams(reply) == 0) {
+        synSleep(0.01L);
+        return;
+    }
 
     char clientIdChar[INT64_WIDTH];
     memset(clientIdChar, 0, INT64_WIDTH);
@@ -112,8 +123,10 @@ void Client::sendRequest() {
 
     std::string requestType = requestTypes[state - 1];
     executeCommand("XADD %d-clients * request %s clientId %d", server, requestType.c_str(), clientId);
-
-    executeCommand("XREADGROUP GROUP diameter client BLOCK 0 COUNT 1 STREAMS %d-%d >", server, clientId);
+    
+    alertBlocking();
+    executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-%d >", server, clientId);
+    unblock();
 }
 
 redisReply* Client::executeCommand(const char* format, ...) {

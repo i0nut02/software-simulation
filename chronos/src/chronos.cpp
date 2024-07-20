@@ -231,6 +231,7 @@ void Chronos::handleTime() {
     if ((static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) == this->syncProcessesTime.size()) && !this->syncProcessesTime.empty()) {
         const auto& top = this->syncProcessesTime.top();
         this->simulationTime = top.first;
+        
         char buffer[VALUE_LEN];
         memset(buffer, '\0', VALUE_LEN);
         std::snprintf(buffer, VALUE_LEN, "%Lf", this->simulationTime);

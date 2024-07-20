@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     int numServers = std::stoi(argv[1]);
 
     // Example data to match the Client constructor signature
-    std::vector<long double> sleepTimes = {2 * ONE_DAY, 10 * ONE_MINUTE, ONE_HOUR, ONE_SECOND};
+    std::vector<long double> sleepTimes = {2 * ONE_DAY, 10 * ONE_MINUTE, ONE_HOUR, ONE_HOUR, ONE_HOUR};
     std::vector<std::string> requestTypes = {"viewAvailableShippings", "takeInChargeShipping", "changeStatusDelivery"};
     std::vector<std::vector<long double>> matrix = {
         {0, 0.5, 0, 0.5, 0},

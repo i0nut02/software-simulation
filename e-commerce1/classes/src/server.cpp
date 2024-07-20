@@ -32,6 +32,8 @@ Server::Server(const std::string& redisIP, int redisPort, int idServer, const st
     streamName = std::to_string(idServer) + "-clients";
 
     initStreams(c2r, streamName.c_str());
+
+    connect();
 }
 
 Server::~Server() {
@@ -115,19 +117,21 @@ void Server::run() {
     int requestCount = 0; // Counter for processed requests
     char lastIdClients[128];
 
-    while (true) {
-        redisReply* reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %d-clients >", idServer);
-        
-        if (!reply || reply->elements == 0) {
-            if (reply) freeReplyObject(reply);
-        } else {
-            if (ReadNumStreams(reply) != 0) {
-                memset(lastIdClients, 0, 128);
-                ReadStreamNumMsgID(reply, 0, 0, lastIdClients);
+    while (_currentTimestamp < 30*24*60*60) {
+        alertBlocking();
+        redisReply* reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 20000 COUNT 1 STREAMS %d-clients >", idServer);
+        unblock();
 
-                processRequest(reply);
-                requestCount++;
-            }
+        if (!reply || ReadNumStreams(reply) == 0) {
+            freeReplyObject(reply);
+            synSleep(0.01L);
+        } else {
+            memset(lastIdClients, 0, 128);
+            ReadStreamNumMsgID(reply, 0, 0, lastIdClients);
+
+            processRequest(reply);
+            synSleep(0.1L);
+            requestCount++;
         }
 
         if (requestCount >= 1000) {
@@ -135,4 +139,5 @@ void Server::run() {
             requestCount = 0;
         }
     }
+    disconnect();
 }
