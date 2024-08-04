@@ -48,7 +48,6 @@ int main(int argc, char* argv[]) {
 
         // Create Service instance
         Service service(idServer, serviceName, services, times);
-
         // Run the service
         service.run();
 

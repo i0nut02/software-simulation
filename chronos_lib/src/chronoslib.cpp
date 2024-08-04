@@ -120,6 +120,9 @@ void mySleep(long double T) {
 }
 
 void unblock() {
+    char buffer[VALUE_LEN];
+    memset(buffer, '\0', VALUE_LEN);
+    
     if (_logLvl >= 0) {
         logRedis(SEND_STREAM, UNBLOCK, NULL_PARAM);
     }
@@ -127,6 +130,14 @@ void unblock() {
     _reply = RedisCommand(_c2r, "XADD %s * pid %d request alertUnblock", SEND_STREAM, _pid);
     assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
     freeReplyObject(_reply);
+
+    _reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
+    assertReply(_c2r, _reply);
+
+    memset(buffer, '\0', VALUE_LEN);
+    ReadStreamMsgVal(_reply, 0, 0, 1, buffer);
+
+    _currentTimestamp = strtold(buffer, NULL);
 
     return;
 }
@@ -182,6 +193,6 @@ std::string getCurrentTime() {
     return oss.str();
 }
 
-long double getSimulationTimestamp() {
-    return _currentTimestamp;
+std::string getSimulationTimestamp() {
+    return std::to_string(_currentTimestamp);
 }

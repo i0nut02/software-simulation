@@ -155,6 +155,10 @@ int Chronos::handleEvents() {
 
         if (strcmp(value, "alertUnblock") == 0){
             this->unblockProcess(pid);
+            
+            this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request %s", pid, std::to_string(simulationTime).c_str());
+            assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
+            freeReplyObject(this->reply);
         }
 
     }

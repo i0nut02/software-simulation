@@ -86,14 +86,15 @@ void Server::forwardMessage(const std::string& requestType, int clientId) {
 void Server::processRequest(redisReply* reply) {
     char clientIdChar[INT64_WIDTH];
     char requestType[REQUEST_TYPE_LEN];
+    char timeRequest[REQUEST_TYPE_LEN];
 
     memset(clientIdChar, 0, INT64_WIDTH);
     memset(requestType, 0, REQUEST_TYPE_LEN);
+    memset(timeRequest, 0, REQUEST_TYPE_LEN);
 
     ReadStreamMsgVal(reply, 0, 0, 1, requestType);
 
     if (strcmp(requestType, "connection") == 0) {
-        freeReplyObject(reply);
         handleConnection(generateClientId());
         return;
     }
@@ -107,8 +108,11 @@ void Server::processRequest(redisReply* reply) {
         reply = RedisCommand(c2r, "XADD %d-%s * clientId response", idServer, clientIdChar);
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
+        logResponse(atoi(clientIdChar));
 
     } else {
+        ReadStreamMsgVal(reply, 0, 0, 5, timeRequest);
+        timeMap[atoi(clientIdChar)] = {timeRequest, getSimulationTimestamp(), requestType};
         forwardMessage(std::string(requestType), atoi(clientIdChar));
     }
 }
@@ -130,6 +134,7 @@ void Server::run() {
             ReadStreamNumMsgID(reply, 0, 0, lastIdClients);
 
             processRequest(reply);
+            freeReplyObject(reply);
             synSleep(0.1L);
             requestCount++;
         }
@@ -140,4 +145,12 @@ void Server::run() {
         }
     }
     disconnect();
+}
+
+void Server::logResponse(int clientId) {
+    redisReply* reply;
+
+    reply = RedisCommand(c2r, "XADD %s * type time serverId %d reqType %s start %s read %s end %s", MONITOR_STREAM, idServer, timeMap[clientId][2].c_str(), timeMap[clientId][0].c_str(), timeMap[clientId][1].c_str(), getSimulationTimestamp().c_str());
+    assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+    freeReplyObject(reply);
 }

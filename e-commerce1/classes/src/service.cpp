@@ -53,13 +53,13 @@ void Service::run() {
         ReadStreamMsgVal(reply, 0, 0, 3, typeRequest);
 
         freeReplyObject(reply);
-
+        
         for (size_t k = 0; k < services.size(); ++k) {
             if (services[k] == typeRequest) {
                 // Process the request
+                synSleep(times[k]);
                 reply = RedisCommand(c2r, "XADD %d-clients * type response clientId %s", idServer, clientId);
                 freeReplyObject(reply);
-                synSleep(times[k]);
                 break;
             }
         }

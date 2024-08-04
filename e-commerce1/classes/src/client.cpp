@@ -35,7 +35,9 @@ Client::~Client() {
 // Main run loop
 void Client::run() {
     while (_currentTimestamp < 30*24*60*60) {
-        mySleep(sleepTimes[state]);
+        std::uniform_real_distribution<long double> dist(0.0, sleepTimes[state]);
+
+        mySleep(dist(rng));
 
         if (state == 0) {
             connectToServer();
@@ -122,7 +124,7 @@ void Client::sendRequest() {
     }
 
     std::string requestType = requestTypes[state - 1];
-    executeCommand("XADD %d-clients * request %s clientId %d", server, requestType.c_str(), clientId);
+    executeCommand("XADD %d-clients * request %s clientId %d timestamp %s", server, requestType.c_str(), clientId, getSimulationTimestamp().c_str());
     
     alertBlocking();
     executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-%d >", server, clientId);

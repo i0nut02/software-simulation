@@ -176,9 +176,10 @@ int main(int argc, char* argv[]) {
     runMake("../../../chronos/src");
     runMake("../../../chronos_lib/src");
     runMake("../../../logger/src");
+    runMake("../../monitor/src");
 
     std::ostringstream command2;
-    command2 << "../../../logger/bin/main " << " &"; // Build the command to run the binary in the background
+    command2 << "../../../logger/bin/main " << " &";
 
     int result = system(command2.str().c_str()); // Execute the command
 
@@ -187,9 +188,18 @@ int main(int argc, char* argv[]) {
     }
 
     std::ostringstream command;
-    command << "../../../chronos/bin/main " << sum << " &"; // Build the command to run the binary in the background
+    command << "../../../chronos/bin/main " << sum << " &";
 
     result = system(command.str().c_str()); // Execute the command
+
+    if (result != 0) {
+        std::cerr << "Error: Failed to execute ../../../chronos/bin/" << std::endl;
+    }
+
+    std::ostringstream command3;
+    command3 << "../../monitor/bin/main " << numCustomers << " " << numCustomerServers << " " << numCouriers << " " << numCouriersServers << " " << numSuppliers << " " << numSuppliersServers << " &";
+
+    result = system(command3.str().c_str()); // Execute the command
 
     if (result != 0) {
         std::cerr << "Error: Failed to execute ../../../chronos/bin/" << std::endl;

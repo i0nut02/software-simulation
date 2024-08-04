@@ -52,7 +52,7 @@ void disconnect();
 
 void logRedis(const char *stream, const char *message, long double value);
 
-long double getSimulationTimestamp();
+std::string getSimulationTimestamp();
 
 std::string getCurrentTime();
 
