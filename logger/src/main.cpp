@@ -6,7 +6,7 @@ int main() {
     redisContext* c2r;
     char value[LOG_LEN];
 
-    std::ofstream file("../../log.txt", std::ios_base::app);
+    std::ofstream file("../../log.txt", std::ios_base::trunc);
 
     if (!file) {
         std::cerr << "Error opening log file." << std::endl;

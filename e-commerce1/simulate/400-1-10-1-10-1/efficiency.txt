@@ -1,0 +1,13 @@
+id;efficiency
+2100;3610.300000
+2100-searchProduct;7551.600000
+2000;201.300000
+2200;143.100000
+2100-viewOrder;56.820000
+2000-changeStatusDelivery;112.410000
+2000-viewAvailableShippings;124.810000
+2000-takeInChargeShipping;88.010000
+2200-viewStatistics;217.610000
+2200-addProduct;74.530000
+2100-createOrder;103.510000
+2100-addToCart;959.210000
