@@ -3,6 +3,7 @@
 int _pid = 0;
 int _logLvl = 0;
 long double _currentTimestamp = 0;
+long double _efficienty = 0;
 
 redisContext *_c2r;
 redisReply *_reply;
@@ -64,6 +65,7 @@ void alertBlocking() {
 }
 
 void synSleep(long double T) {
+    _efficienty += T;
     char buffer[VALUE_LEN];
     memset(buffer, '\0', VALUE_LEN);
     std::snprintf(buffer, VALUE_LEN, "%Lf", T);

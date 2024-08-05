@@ -144,6 +144,7 @@ void Server::run() {
             requestCount = 0;
         }
     }
+    logEfficienty();
     disconnect();
 }
 
@@ -151,6 +152,14 @@ void Server::logResponse(int clientId) {
     redisReply* reply;
 
     reply = RedisCommand(c2r, "XADD %s * type time serverId %d reqType %s start %s read %s end %s", MONITOR_STREAM, idServer, timeMap[clientId][2].c_str(), timeMap[clientId][0].c_str(), timeMap[clientId][1].c_str(), getSimulationTimestamp().c_str());
+    assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+    freeReplyObject(reply);
+}
+
+void Server::logEfficienty() {
+    redisReply* reply;
+
+    reply = RedisCommand(c2r, "XADD %s * type efficiency id %d value %s", MONITOR_STREAM, idServer, std::to_string(_efficienty).c_str());
     assertReplyType(c2r, reply, REDIS_REPLY_STRING);
     freeReplyObject(reply);
 }

@@ -36,6 +36,7 @@ private:
     void handleDisconnection(int clientId);
     void forwardMessage(const std::string& requestType, int clientId);
     void logResponse(int clientId);
+    void logEfficienty();
     // Utility method to execute a Redis command and handle errors
     redisReply* executeCommand(const char* format, ...);
 };

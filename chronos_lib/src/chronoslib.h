@@ -34,6 +34,7 @@
 extern int _pid;
 extern int _logLvl;
 extern long double _currentTimestamp;
+extern long double _efficienty;
 
 extern redisContext *_c2r;
 extern redisReply *_reply;

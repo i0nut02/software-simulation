@@ -75,5 +75,15 @@ void Service::run() {
     }
 
     redisFree(c2r);
+    logEfficienty();
     disconnect();
+}
+
+void Service::logEfficienty() {
+    redisReply* reply;
+    redisContext* c2r = redisConnect(REDIS_IP, REDIS_PORT);
+
+    reply = RedisCommand(c2r, "XADD %s * type efficiency id %d-%s value %s", MONITOR_STREAM, idServer, serviceName.c_str(), std::to_string(_efficienty).c_str());
+    assertReplyType(c2r, reply, REDIS_REPLY_STRING);
+    freeReplyObject(reply);
 }

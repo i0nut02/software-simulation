@@ -13,6 +13,8 @@
 
 #define REQ_LEN 100
 
+#define MONITOR_STREAM "monitor-monoserver"
+
 class Service {
 public:
     Service(int idServer, const std::string& serviceName, const std::vector<std::string>& services, const std::vector<long double>& times)
@@ -27,6 +29,7 @@ private:
 
     void processMessage(redisReply* reply);
     void sendClientIdToOutputStream(const std::string& clientId);
+    void logEfficienty();
 };
 
 #endif // SERVICE_H
