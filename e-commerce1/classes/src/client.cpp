@@ -82,8 +82,11 @@ void Client::connectToServer() {
     streamName = std::to_string(server)  + "-connections";
     initStreams(c2r, streamName.c_str());
 
+    makeWaitUnlock();
+    std::cout << 1 << std::endl;
     redisReply* reply = executeCommand("XADD %d-clients * request connection", server);
     freeReplyObject(reply);
+    synSleep(0.01L);
 
     alertBlocking();
     reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-connections >", server);
@@ -110,6 +113,9 @@ void Client::connectToServer() {
 // Disconnect from the server
 void Client::disconnectFromServer() {
     if (c2r != nullptr) {
+        synSleep(0.01L);
+        makeWaitUnlock();
+        std::cout << 2 << std::endl;
         executeCommand("XADD %d-clients * request disconnection clientId %d", server, clientId);
     }
     redisReply* reply = RedisCommand(c2r, "DEL %d-%d", server, clientId);
@@ -124,8 +130,12 @@ void Client::sendRequest() {
     }
 
     std::string requestType = requestTypes[state - 1];
+    synSleep(0.01L);
+    makeWaitUnlock();
+    std::cout << 3 << std::endl;
     executeCommand("XADD %d-clients * request %s clientId %d timestamp %s", server, requestType.c_str(), clientId, getSimulationTimestamp().c_str());
-    
+    synSleep(0.01L);
+
     alertBlocking();
     executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-%d >", server, clientId);
     unblock();

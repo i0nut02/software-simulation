@@ -27,6 +27,7 @@ int main() {
         alertBlocking();
         reply = RedisCommand(c2r, "XREADGROUP GROUP diameter server BLOCK 10000 COUNT 1 STREAMS server >");
         assertReply(c2r, reply);
+        unblock();
         synSleep(1);
 
         if (ReadNumStreams(reply) == 0) {
@@ -37,12 +38,13 @@ int main() {
         memset(timeReq, 0, 1000);
         ReadStreamMsgVal(reply, 0, 0, 1, id);
         ReadStreamMsgVal(reply, 0, 0, 3, timeReq);
-
+        makeWaitUnlock();
         reply = RedisCommand(c2r, "XADD customer * request continue");
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
+        synSleep(0.01L);
 
-        std::string endTime = std::to_string(getSimulationTimestamp());
+        std::string endTime = getSimulationTimestamp();
         reply = RedisCommand(c2r, "XADD monitor-monoserver * startResponse %s endResponse %s", timeReq, endTime.c_str());
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);

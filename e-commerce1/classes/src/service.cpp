@@ -58,8 +58,11 @@ void Service::run() {
             if (services[k] == typeRequest) {
                 // Process the request
                 synSleep(times[k]);
+                std::cout << 7 << std::endl;
+                makeWaitUnlock();
                 reply = RedisCommand(c2r, "XADD %d-clients * type response clientId %s", idServer, clientId);
                 freeReplyObject(reply);
+                //synSleep(0.01L);
                 break;
             }
         }
@@ -72,6 +75,7 @@ void Service::run() {
             freeReplyObject(reply);
             requestCount = 0; // Reset the counter
         }
+        synSleep(0.01L);
     }
 
     redisFree(c2r);

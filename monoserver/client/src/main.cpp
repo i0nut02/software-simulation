@@ -39,17 +39,17 @@ int main() {
 
         synSleep(g);
 
-        curTime = std::to_string(getSimulationTimestamp());
-        
+        curTime = getSimulationTimestamp();
+        makeWaitUnlock();
+        std::cout << "client" << std::endl;
         reply = RedisCommand(c2r, "XADD server * request %d time %s", _pid, curTime.c_str());
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
+        synSleep(0.01L);
 
         alertBlocking();
-
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter boh BLOCK 0 COUNT 1 STREAMS customer >");
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter boh BLOCK 30000 COUNT 1 STREAMS customer >");
         assertReply(c2r, reply);
-
         unblock();
     }
 

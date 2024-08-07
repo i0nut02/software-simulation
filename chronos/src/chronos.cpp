@@ -112,7 +112,13 @@ int Chronos::handleEvents() {
     std::set<int> copiedProcesses = this->activeProcesses;
 
     while (true) {
-        if ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size())) {
+        std::cout << "waitUnlock: " << waitUnlock << std::endl;
+        std::cout << "this->numProcesses: " << this->numProcesses << std::endl;
+        std::cout << "this->disconnectedProcesses: " << this->disconnectedProcesses << std::endl;
+        std::cout << "this->getNumBlockedProcesses(): " << this->getNumBlockedProcesses() << std::endl;
+        std::cout << "this->syncProcessesTime.size(): " << this->syncProcessesTime.size() << std::endl << std::endl;
+        //if ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size())) {
+        if (((waitUnlock != 0) | ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size())))) {           
             this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", RECEIVE_STREAM);
         } else {
             this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %s >", RECEIVE_STREAM);
@@ -155,10 +161,19 @@ int Chronos::handleEvents() {
 
         if (strcmp(value, "alertUnblock") == 0){
             this->unblockProcess(pid);
+            waitUnlock = std::max(0, waitUnlock - 1);
+
             
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request %s", pid, std::to_string(simulationTime).c_str());
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
             freeReplyObject(this->reply);
+        }
+
+        if (strcmp(value, "waitUnlock") == 0) {
+            waitUnlock++;
+            //this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * a b", pid);
+            //assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
+            //freeReplyObject(this->reply);
         }
 
     }
@@ -253,7 +268,7 @@ void Chronos::handleTime() {
             this->syncProcessesTime.pop();
         }
 
-        micro_sleep(5000);
+        //micro_sleep(5000);
 
     }
 }

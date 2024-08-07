@@ -60,9 +60,13 @@ int Server::generateClientId() {
 }
 
 void Server::handleConnection(int clientId) {
+    synSleep(0.1L);
+    makeWaitUnlock();
+    std::cout << 4 << std::endl;
     redisReply* reply = RedisCommand(c2r, "XADD %d-connections * clientId %d", idServer, clientId);
     assertReplyType(c2r, reply, REDIS_REPLY_STRING);
     freeReplyObject(reply);
+    //synSleep(0.01L);
     
     std::string clientStream = std::to_string(idServer) + "-" + std::to_string(clientId);
     initStreams(c2r, clientStream.c_str());
@@ -76,9 +80,13 @@ void Server::handleDisconnection(int clientId) {
 
 void Server::forwardMessage(const std::string& requestType, int clientId) {
     if (serviceMap.count(requestType) > 0) {
+        synSleep(0.02L);
+        makeWaitUnlock();
+        std::cout << 5 << std::endl;
         redisReply* reply = RedisCommand(c2r, "XADD %s-%d * clientId %d request %s", serviceMap[requestType].c_str(), idServer, clientId, requestType.c_str());
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
+        //synSleep(0.01L);
     }
     return;
 }
@@ -105,11 +113,13 @@ void Server::processRequest(redisReply* reply) {
         handleDisconnection(atoi(clientIdChar));
 
     } else if (strcmp(requestType, "response") == 0){
+        makeWaitUnlock();
+        std::cout << 6 << std::endl;
         reply = RedisCommand(c2r, "XADD %d-%s * clientId response", idServer, clientIdChar);
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
         logResponse(atoi(clientIdChar));
-
+        //synSleep(0.01L);
     } else {
         ReadStreamMsgVal(reply, 0, 0, 5, timeRequest);
         timeMap[atoi(clientIdChar)] = {timeRequest, getSimulationTimestamp(), requestType};
@@ -150,7 +160,6 @@ void Server::run() {
 
 void Server::logResponse(int clientId) {
     redisReply* reply;
-
     reply = RedisCommand(c2r, "XADD %s * type time serverId %d reqType %s start %s read %s end %s", MONITOR_STREAM, idServer, timeMap[clientId][2].c_str(), timeMap[clientId][0].c_str(), timeMap[clientId][1].c_str(), getSimulationTimestamp().c_str());
     assertReplyType(c2r, reply, REDIS_REPLY_STRING);
     freeReplyObject(reply);

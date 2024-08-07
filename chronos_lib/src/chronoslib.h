@@ -45,6 +45,8 @@ void alertBlocking();
 
 void unblock();
 
+void makeWaitUnlock();
+
 void synSleep(long double T);
 
 void mySleep(long double T);

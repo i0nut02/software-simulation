@@ -33,8 +33,8 @@ int main() {
 
     int numResponses = 0;
 
-    std::ofstream file("../log_monitors.txt", std::ios_base::app);
-    std::ofstream monitoring("../live_monitoring.txt", std::ios_base::app);
+    std::ofstream file("../log_monitors.txt", std::ios_base::trunc);
+    std::ofstream monitoring("../live_monitoring.txt", std::ios_base::trunc);
 
     if (!file) {
         std::cerr << "Error opening log file." << std::endl;

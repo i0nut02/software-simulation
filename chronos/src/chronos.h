@@ -13,6 +13,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <limits>
 
 using namespace std;
 
@@ -41,6 +42,7 @@ using namespace std;
 #define SEND_ID "Send ID"
 #define READ_STREAM "Read stream"
 #define SYNC_PROCESS "Sync process"
+#define FINISH_TIME 60 * 60 * 24 * 30 
 
 /* Types */
 
@@ -68,6 +70,8 @@ class Chronos {
         redisContext *c2r;
 
         redisReply *reply;
+
+        int waitUnlock = 0;
 
         int logLvl;
 

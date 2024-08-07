@@ -14,6 +14,7 @@ integer2=$2
 folder0="../chronos/bin"
 folder1="./server/bin"
 folder2="./client/bin"
+folder3="./monitors/bin"
 
 perform_make() {
     local folder="$1"
@@ -39,12 +40,13 @@ run() {
     )
 }
 
+perform_make "$folder0"
 
 perform_make "$folder1"
 
-echo "\n\n"
-
 perform_make "$folder2"
+
+perform_make "$folder3"
 
 # Perform make in folder1 integer1 times
 run "$folder1" "$integer1"
@@ -52,3 +54,4 @@ run "$folder1" "$integer1"
 # Perform make in folder2 integer2 times
 run "$folder2" "$integer2"
 
+run "$folder3" "1"

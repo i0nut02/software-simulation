@@ -8,6 +8,15 @@ long double _efficienty = 0;
 redisContext *_c2r;
 redisReply *_reply;
 
+void makeWaitUnlock() {
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request waitUnlock", SEND_STREAM, _pid);
+    assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
+    freeReplyObject(_reply);
+
+    //_reply = RedisCommand(_c2r, "XREADGROUP GROUP diameter process BLOCK 0 COUNT 1 STREAMS orchestrator-%d >", _pid);
+    //assertReply(_c2r, _reply);
+}
+
 int connect(char *redisIP, int redisPort, int logLvl) {
     char value[VALUE_LEN];
     
