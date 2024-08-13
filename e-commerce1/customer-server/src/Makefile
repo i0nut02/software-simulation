@@ -4,7 +4,7 @@ ODIR=../obj
 BDIR=../bin
 
 CC=g++
-CFLAGS=-std=c++20 -I. -I$(IDIR) -lhiredis -lpq -lm -lboost_system
+CFLAGS=-std=c++20 -I. -I$(IDIR) -lhiredis -lpq -lm
 
 DEPS = $(wildcard $(IDIR)/*.h)
 SRC = $(wildcard *.cpp)
