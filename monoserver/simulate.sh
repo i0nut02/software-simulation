@@ -48,10 +48,10 @@ perform_make "$folder2"
 
 perform_make "$folder3"
 
+run "$folder3" "1"
+
 # Perform make in folder1 integer1 times
 run "$folder1" "$integer1"
 
 # Perform make in folder2 integer2 times
 run "$folder2" "$integer2"
-
-run "$folder3" "1"
