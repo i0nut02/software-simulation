@@ -72,9 +72,9 @@ int main() {
             ldStart = strtold(valueStart, NULL);
             ldEnd = strtold(valueEnd, NULL);
 
-            file << ldStart << ";"<< ldEnd << std::endl;
-
             timeResponse = ldEnd - ldStart;
+
+            file << ldStart << ";"<< ldEnd  << ";" << timeResponse << std::endl;
 
             numResponses++;
             maxTimeResponse = std::max(maxTimeResponse, timeResponse);
