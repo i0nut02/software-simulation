@@ -34,6 +34,8 @@ Server::Server(const std::string& redisIP, int redisPort, int idServer, const st
     initStreams(c2r, streamName.c_str());
 
     connect();
+    sendId(std::to_string(idServer));
+
 }
 
 Server::~Server() {
@@ -59,11 +61,12 @@ int Server::generateClientId() {
     return clientIdCounter++;
 }
 
-void Server::handleConnection(int clientId) {
+void Server::handleConnection(int clientId, std::string stream) {
+    initStreams(c2r, stream.c_str());
     synSleep(0.1L);
-    makeWaitUnlock();
-    std::cout << 4 << std::endl;
-    redisReply* reply = RedisCommand(c2r, "XADD %d-connections * clientId %d", idServer, clientId);
+    //makeWaitUnlock();
+    sendTo(stream);
+    redisReply* reply = RedisCommand(c2r, "XADD %s * clientId %d", stream.c_str(), clientId);
     assertReplyType(c2r, reply, REDIS_REPLY_STRING);
     freeReplyObject(reply);
     //synSleep(0.01L);
@@ -81,8 +84,8 @@ void Server::handleDisconnection(int clientId) {
 void Server::forwardMessage(const std::string& requestType, int clientId) {
     if (serviceMap.count(requestType) > 0) {
         synSleep(0.02L);
-        makeWaitUnlock();
-        std::cout << 5 << std::endl;
+        //makeWaitUnlock();
+        sendTo(serviceMap[requestType] + "-" + std::to_string(idServer));
         redisReply* reply = RedisCommand(c2r, "XADD %s-%d * clientId %d request %s", serviceMap[requestType].c_str(), idServer, clientId, requestType.c_str());
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
@@ -102,19 +105,19 @@ void Server::processRequest(redisReply* reply) {
 
     ReadStreamMsgVal(reply, 0, 0, 1, requestType);
 
+    ReadStreamMsgVal(reply, 0, 0, 3, clientIdChar);
+
     if (strcmp(requestType, "connection") == 0) {
-        handleConnection(generateClientId());
+        handleConnection(generateClientId(), clientIdChar);
         return;
     }
-
-    ReadStreamMsgVal(reply, 0, 0, 3, clientIdChar);
 
     if (strcmp(requestType, "disconnection") == 0) {
         handleDisconnection(atoi(clientIdChar));
 
     } else if (strcmp(requestType, "response") == 0){
-        makeWaitUnlock();
-        std::cout << 6 << std::endl;
+        //makeWaitUnlock();
+        sendTo(std::string("") + clientIdChar + "c");
         reply = RedisCommand(c2r, "XADD %d-%s * clientId response", idServer, clientIdChar);
         assertReplyType(c2r, reply, REDIS_REPLY_STRING);
         freeReplyObject(reply);
@@ -130,11 +133,16 @@ void Server::processRequest(redisReply* reply) {
 void Server::run() {
     int requestCount = 0; // Counter for processed requests
     char lastIdClients[128];
+    redisReply* reply;
 
     while (_currentTimestamp < 30*24*60*60) {
-        alertBlocking();
-        redisReply* reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 20000 COUNT 1 STREAMS %d-clients >", idServer);
-        unblock();
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %d-clients >", idServer);
+
+        if (ReadNumStreams(reply) == 0) {
+            alertBlocking();
+            reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 20000 COUNT 1 STREAMS %d-clients >", idServer);
+            unblock();
+        }
 
         if (!reply || ReadNumStreams(reply) == 0) {
             freeReplyObject(reply);

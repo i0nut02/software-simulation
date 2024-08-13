@@ -32,7 +32,7 @@ private:
 
     void processRequest(redisReply* reply);
     int generateClientId();
-    void handleConnection(int clientId);
+    void handleConnection(int clientId, std::string stream);
     void handleDisconnection(int clientId);
     void forwardMessage(const std::string& requestType, int clientId);
     void logResponse(int clientId);

@@ -30,11 +30,16 @@ void Service::run() {
     int requestCount = 0; // Counter for processed requests
 
     connect();
+    sendId(serviceName + "-" + std::to_string(idServer));
 
     while (_currentTimestamp < 30*24*60*60) {
-        alertBlocking();
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter service BLOCK 20000 COUNT 1 STREAMS %s-%d >", serviceName.c_str(), idServer);
-        unblock();
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter service COUNT 1 STREAMS %s-%d >", serviceName.c_str(), idServer);
+
+        if (ReadNumStreams(reply) == 0) {
+            alertBlocking();
+            reply = RedisCommand(c2r, "XREADGROUP GROUP diameter service BLOCK 20000 COUNT 1 STREAMS %s-%d >", serviceName.c_str(), idServer);
+            unblock();
+        }
 
         if (ReadNumStreams(reply) == 0) {
             synSleep(0.01L);
@@ -58,8 +63,8 @@ void Service::run() {
             if (services[k] == typeRequest) {
                 // Process the request
                 synSleep(times[k]);
-                std::cout << 7 << std::endl;
-                makeWaitUnlock();
+                //makeWaitUnlock();
+                sendTo(std::to_string(idServer));
                 reply = RedisCommand(c2r, "XADD %d-clients * type response clientId %s", idServer, clientId);
                 freeReplyObject(reply);
                 //synSleep(0.01L);

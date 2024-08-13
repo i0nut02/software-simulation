@@ -41,6 +41,7 @@ void Client::run() {
 
         if (state == 0) {
             connectToServer();
+            sendId(std::to_string(clientId) + "c");
         } else if (state == requestTypes.size() + 1) {
             disconnectFromServer();
         } else {
@@ -79,19 +80,24 @@ void Client::connectToServer() {
     std::string streamName = std::to_string(server) + "-clients";
     initStreams(c2r, streamName.c_str());
 
-    streamName = std::to_string(server)  + "-connections";
+    streamName = std::to_string(_pid)  + "a";
     initStreams(c2r, streamName.c_str());
 
-    makeWaitUnlock();
-    std::cout << 1 << std::endl;
-    redisReply* reply = executeCommand("XADD %d-clients * request connection", server);
+    //makeWaitUnlock();
+    sendId(std::to_string(_pid) + "a");
+    sendTo(std::to_string(server));
+    redisReply* reply = executeCommand("XADD %d-clients * request connection id %da", server, _pid);
     freeReplyObject(reply);
     synSleep(0.01L);
 
-    alertBlocking();
-    reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-connections >", server);
-    assertReply(c2r, reply);
-    unblock();
+    reply = executeCommand("XREADGROUP GROUP diameter client COUNT 1 STREAMS %da >", _pid);
+
+    if (ReadNumStreams(reply) == 0) {
+        alertBlocking();
+        reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %da >", _pid);
+        assertReply(c2r, reply);
+        unblock();
+    }
 
     if (ReadNumStreams(reply) == 0) {
         synSleep(0.01L);
@@ -114,11 +120,11 @@ void Client::connectToServer() {
 void Client::disconnectFromServer() {
     if (c2r != nullptr) {
         synSleep(0.01L);
-        makeWaitUnlock();
-        std::cout << 2 << std::endl;
+        //makeWaitUnlock();
+        sendTo(std::to_string(server));
         executeCommand("XADD %d-clients * request disconnection clientId %d", server, clientId);
     }
-    redisReply* reply = RedisCommand(c2r, "DEL %d-%d", server, clientId);
+    redisReply* reply = RedisCommand(c2r, "DEL %da", _pid);
     assertReply(c2r, reply);
 }
 
@@ -131,14 +137,25 @@ void Client::sendRequest() {
 
     std::string requestType = requestTypes[state - 1];
     synSleep(0.01L);
-    makeWaitUnlock();
-    std::cout << 3 << std::endl;
+    //makeWaitUnlock();
+    sendTo(std::to_string(server));
     executeCommand("XADD %d-clients * request %s clientId %d timestamp %s", server, requestType.c_str(), clientId, getSimulationTimestamp().c_str());
     synSleep(0.01L);
 
-    alertBlocking();
-    executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-%d >", server, clientId);
-    unblock();
+    redisReply* reply = executeCommand("XREADGROUP GROUP diameter client COUNT 1 STREAMS %d-%d >", server, clientId);
+
+    if (ReadNumStreams(reply) == 0) {
+        long double a = _currentTimestamp;
+        alertBlocking();
+        reply = executeCommand("XREADGROUP GROUP diameter client BLOCK 20000 COUNT 1 STREAMS %d-%d >", server, clientId);
+        assertReply(c2r, reply);
+        unblock();
+    }
+
+    if (ReadNumStreams(reply) == 0) {
+        synSleep(0.01L);
+        return;
+    }
 }
 
 redisReply* Client::executeCommand(const char* format, ...) {
