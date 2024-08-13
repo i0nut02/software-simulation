@@ -153,6 +153,18 @@ void unblock() {
     return;
 }
 
+void sendId(std::string id) {
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request registID id %s", SEND_STREAM, _pid, id.c_str());
+    assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
+    freeReplyObject(_reply);
+}
+
+void sendTo(std::string id) {
+    _reply = RedisCommand(_c2r, "XADD %s * pid %d request sendingTo id %s", SEND_STREAM, _pid, id.c_str());
+    assertReplyType(_c2r, _reply, REDIS_REPLY_STRING);
+    freeReplyObject(_reply);
+}
+
 void disconnect() {
     if (_logLvl >= 0) {
         logRedis(SEND_STREAM, DISCONNECT, NULL_PARAM);

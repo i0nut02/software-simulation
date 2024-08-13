@@ -14,6 +14,7 @@
 #include <sstream>
 #include <iomanip>
 #include <limits>
+#include <unordered_map>
 
 using namespace std;
 
@@ -64,6 +65,10 @@ class Chronos {
         set<int> blockedProcesses;
 
         priority_queue<std::pair<long double, int>, std::vector<std::pair<long double, int>>, greater<std::pair<long double, int>>> syncProcessesTime;
+
+        std::unordered_map<std::string, long double> ids;
+
+        std::set<int> waitUnlockProcesses;
 
         int upperRandInt;
 

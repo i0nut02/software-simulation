@@ -51,6 +51,10 @@ void synSleep(long double T);
 
 void mySleep(long double T);
 
+void sendId(std::string id);
+
+void sendTo(std::string id);
+
 void disconnect();
 
 void logRedis(const char *stream, const char *message, long double value);

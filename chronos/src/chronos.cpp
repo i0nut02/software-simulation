@@ -82,7 +82,7 @@ int Chronos::acceptIncomingConn() {
         if (this->logLvl > 0) {
             logRedis(CONNECTION_REQUEST_STREAM, READ_CONNECTIONS, NULL_VALUE);
         }
-
+        
         this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", CONNECTION_REQUEST_STREAM);
         assertReply(this->c2r, this->reply);
 
@@ -112,13 +112,12 @@ int Chronos::handleEvents() {
     std::set<int> copiedProcesses = this->activeProcesses;
 
     while (true) {
-        std::cout << "waitUnlock: " << waitUnlock << std::endl;
-        std::cout << "this->numProcesses: " << this->numProcesses << std::endl;
-        std::cout << "this->disconnectedProcesses: " << this->disconnectedProcesses << std::endl;
-        std::cout << "this->getNumBlockedProcesses(): " << this->getNumBlockedProcesses() << std::endl;
-        std::cout << "this->syncProcessesTime.size(): " << this->syncProcessesTime.size() << std::endl << std::endl;
-        //if ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size())) {
-        if (((waitUnlock != 0) | ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size())))) {           
+        //std::cout << "waitUnlockProcesses.size(): " << waitUnlockProcesses.size() << std::endl;
+        //std::cout << "numProcesses: " << numProcesses << std::endl;
+        //std::cout << "disconnectedProcesses: " << disconnectedProcesses << std::endl;
+        //std::cout << "getNumBlockedProcesses(): " << getNumBlockedProcesses() << std::endl;
+        //std::cout << "syncProcessesTime.size(): " << syncProcessesTime.size() << std::endl << std::endl;
+        if ((waitUnlockProcesses.size() > 0) | ((this->numProcesses != this->disconnectedProcesses) && (static_cast<std::size_t>(this->numProcesses - this->disconnectedProcesses - this->getNumBlockedProcesses()) < this->syncProcessesTime.size()))) {
             this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 0 COUNT 1 STREAMS %s >", RECEIVE_STREAM);
         } else {
             this->reply = RedisCommand(this->c2r, "XREADGROUP GROUP diameter orchestrator COUNT 1 STREAMS %s >", RECEIVE_STREAM);
@@ -161,21 +160,36 @@ int Chronos::handleEvents() {
 
         if (strcmp(value, "alertUnblock") == 0){
             this->unblockProcess(pid);
-            waitUnlock = std::max(0, waitUnlock - 1);
-
+            if (waitUnlockProcesses.count(pid) != 0) {
+                waitUnlockProcesses.erase(pid);
+            }
             
             this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * request %s", pid, std::to_string(simulationTime).c_str());
             assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
             freeReplyObject(this->reply);
         }
 
-        if (strcmp(value, "waitUnlock") == 0) {
-            waitUnlock++;
-            //this->reply = RedisCommand(this->c2r, "XADD orchestrator-%d * a b", pid);
-            //assertReplyType(this->c2r, this->reply, REDIS_REPLY_STRING);
-            //freeReplyObject(this->reply);
+        if (strcmp(value, "registID") == 0) {
+            char id[VALUE_LEN];
+            memset(id, 0, VALUE_LEN);
+
+            ReadStreamMsgVal(reply, 0, 0, 5, id);
+            ids[id] = pid;
         }
 
+        if (strcmp(value, "sendingTo") == 0) {
+            char id[VALUE_LEN];
+            memset(id, 0, VALUE_LEN);
+
+            ReadStreamMsgVal(reply, 0, 0, 5, id);
+            // manage if blocking with map of integers or idk
+            // if in blocking we are expecting that the first time will
+            // be a unblock, but in the second one we expect a non blocking
+            // and all the things.
+            if (blockedProcesses.count(ids[id]) != 0) {
+                waitUnlockProcesses.insert(ids[id]);
+            }
+        }
     }
     return 0;
 }
@@ -254,7 +268,7 @@ void Chronos::handleTime() {
         char buffer[VALUE_LEN];
         memset(buffer, '\0', VALUE_LEN);
         std::snprintf(buffer, VALUE_LEN, "%Lf", this->simulationTime);
-
+        
         while (!this->syncProcessesTime.empty() && this->syncProcessesTime.top().first == this->simulationTime) {
             if (this->logLvl >= 0) {
                 logRedis(("orchestrator-" + std::to_string(this->syncProcessesTime.top().second)).c_str(), SYNC_PROCESS, this->syncProcessesTime.top().second);
@@ -266,10 +280,8 @@ void Chronos::handleTime() {
 
             this->activeProcesses.insert(this->syncProcessesTime.top().second);
             this->syncProcessesTime.pop();
+            break;
         }
-
-        //micro_sleep(5000);
-
     }
 }
 
