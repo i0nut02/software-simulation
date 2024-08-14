@@ -1,9 +1,7 @@
 # software-simulation
 
 ## TODO:
-- make different servers per client in automation
-- remove peint messages
-- finish sending from server to service
+- Make sendId form clients like serverNum-clientId and also the sendTo in server part
 
 ## tests
 
