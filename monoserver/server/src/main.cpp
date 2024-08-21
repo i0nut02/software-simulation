@@ -62,7 +62,6 @@ int main() {
         synSleep(1);
 
         if (ReadNumStreams(reply) == 0) {
-            std::cout << "ok" << std::endl;
             break;
         }
 

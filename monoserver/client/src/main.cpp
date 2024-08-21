@@ -55,9 +55,6 @@ int main() {
     memset(serverId, 0, 100);
     reply = RedisCommand(c2r, "XREADGROUP GROUP diameter boh BLOCK 10000 COUNT 1 STREAMS conn >");
     assertReply(c2r, reply);
-    if (ReadNumStreams(reply) == 0) {
-        std::cout << "greve" << std::endl;
-    }
 
     ReadStreamMsgVal(reply, 0, 0, 1, serverId);
     sendId(std::to_string(_pid));
