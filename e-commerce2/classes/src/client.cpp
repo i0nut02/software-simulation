@@ -92,7 +92,7 @@ void Client::connectToServer() {
     //makeWaitUnlock();
     sendId(std::to_string(_pid) + "a");
     sendTo(std::to_string(server));
-    redisReply* reply = executeCommand("XADD %d-clients * request connection id %da", server, _pid);
+    redisReply* reply = executeCommand("XADD %d-clients * request connection id %da time %s", server, _pid, getSimulationTimestamp().c_str());
     freeReplyObject(reply);
     synSleep(0.01L);
 

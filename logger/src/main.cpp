@@ -20,7 +20,7 @@ int main() {
     initStreams(c2r, LOGGER_STREAM);
 
     while (1) {
-        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 15000 COUNT 1 STREAMS %s >", LOGGER_STREAM);
+        reply = RedisCommand(c2r, "XREADGROUP GROUP diameter orchestrator BLOCK 10000 COUNT 1 STREAMS %s >", LOGGER_STREAM);
         assertReply(c2r, reply);
 
         if (ReadNumStreams(reply) == 0) {

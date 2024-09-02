@@ -64,12 +64,11 @@ int Server::generateClientId() {
 void Server::handleConnection(int clientId, std::string stream) {
     initStreams(c2r, stream.c_str());
     synSleep(0.1L);
-    //makeWaitUnlock();
+    
     sendTo(stream);
     redisReply* reply = RedisCommand(c2r, "XADD %s * clientId %d", stream.c_str(), clientId);
     assertReplyType(c2r, reply, REDIS_REPLY_STRING);
     freeReplyObject(reply);
-    //synSleep(0.01L);
     
     std::string clientStream = std::to_string(idServer) + "-" + std::to_string(clientId);
     initStreams(c2r, clientStream.c_str());
@@ -108,7 +107,12 @@ void Server::processRequest(redisReply* reply) {
     ReadStreamMsgVal(reply, 0, 0, 3, clientIdChar);
 
     if (strcmp(requestType, "connection") == 0) {
-        handleConnection(generateClientId(), clientIdChar);
+        ReadStreamMsgVal(reply, 0, 0, 5, timeRequest);
+        int clientId = generateClientId();
+        timeMap[clientId] = {timeRequest, getSimulationTimestamp(), requestType};
+
+        handleConnection(clientId, clientIdChar);
+        logResponse(clientId);
         return;
     }
 
